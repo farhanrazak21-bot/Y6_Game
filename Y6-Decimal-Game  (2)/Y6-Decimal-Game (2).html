@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Y6 Decimal Rounding – Honest Dealings Game</title>
+  <style>
+    :root{--bg:#0f172a;--panel:#0b1220;--card:#111827;--muted:#9aa4b2;--ok:#22c55e;--warn:#f59e0b;--err:#ef4444}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial;background:var(--bg);color:#e5e7eb}
+    header{position:sticky;top:0;background:var(--panel);border-bottom:1px solid #1f2937;padding:16px;z-index:10}
+    h1{margin:0;font-size:20px}
+    .sub{color:var(--muted);font-size:13px}
+    .wrap{max-width:900px;margin:16px auto;padding:0 16px}
+    .card{background:var(--card);border:1px solid #1f2937;border-radius:14px;padding:16px}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    button{background:var(--panel);border:1px solid #253042;border-radius:10px;color:#e5e7eb;padding:10px 12px;cursor:pointer}
+    button.primary{background:linear-gradient(135deg,#16a34a,#22c55e);border:none;color:#06210d}
+    button.warn{background:#1f1300;border:1px solid #6b4e00;color:#ffd166}
+    input,select{background:var(--panel);border:1px solid #253042;border-radius:10px;color:#e5e7eb;padding:10px}
+    .big{font-size:26px;letter-spacing:.3px}
+    .muted{color:var(--muted)}
+    .result{margin-top:10px;padding:10px;border-radius:10px;background:var(--panel);border:1px solid #1f2937}
+    .ok{color:var(--ok)}
+    .err{color:var(--err)}
+    .hint{color:#eab308}
+    .stat{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+    .stat .tile{background:#0b1220;border:1px solid #253042;border-radius:10px;padding:10px;text-align:center}
+    .pill{padding:6px 10px;border:1px solid #253042;border-radius:999px;background:#0b1220}
+    .note{font-size:12px;color:#cbd5e1}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Y6 Decimal Rounding – Honest Dealings Game</h1>
+    <div class="sub">MA‑Y6‑U1‑S1/7 • Round to nearest tenth or whole • Values: ISSC6 (justice & fairness), QS‑Y6‑U1‑S2 (honesty in dealings)</div>
+  </header>
+
+  <div class="wrap">
+    <section class="card">
+      <div class="row">
+        <div class="big">Number: <b id="num">—</b></div>
+        <span class="pill" id="target">—</span>
+        <button id="new" class="primary">New Question</button>
+        <label>Mode</label>
+        <select id="mode">
+          <option value="random">Random (tenth/whole)</option>
+          <option value="tenth">Nearest tenth</option>
+          <option value="whole">Nearest whole</option>
+        </select>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <input id="ans" placeholder="Type your rounded answer" style="min-width:260px"/>
+        <button id="check" class="primary">Check</button>
+        <button id="skip" class="warn">Skip</button>
+        <span class="note">Tip: Enter numbers like 12.4 or 12 (no RM)</span>
+      </div>
+      <div class="result" id="feedback"></div>
+      <div class="stat">
+        <div class="tile">Correct<br><b id="correct">0</b></div>
+        <div class="tile">Total<br><b id="total">0</b></div>
+        <div class="tile">Streak<br><b id="streak">0</b></div>
+        <div class="tile">Fairness Score<br><b id="fair">0</b></div>
+      </div>
+      <div class="result muted" style="margin-top:10px">
+        <b>Value Link:</b> Rounding for prices must be <i>honest and fair</i>. A small digit (hundredths) can change the outcome — just like small actions matter in justice.
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:14px">
+      <div class="title" style="font-weight:700;margin-bottom:6px">How rounding works</div>
+      <div class="muted">Look at the <b>hundredths digit</b> when rounding to tenths, and the <b>tenths digit</b> when rounding to whole numbers.</div>
+      <ul>
+        <li>To nearest <b>tenth</b>: if hundredths ≥ 5 ➜ round up; if &lt; 5 ➜ round down.</li>
+        <li>To nearest <b>whole</b>: if tenths ≥ 5 ➜ round up; if &lt; 5 ➜ round down.</li>
+      </ul>
+      <div class="note">Example: 18.76 → tenth = 18.8 (hundredths = 6, so up); whole = 19 (tenths = 7).</div>
+    </section>
+  </div>
+
+  <script>
+    const $ = s => document.querySelector(s);
+    let correct=0,total=0,streak=0,fair=0; // fairness points (good accuracy streaks)
+    let current = { n: 0, goal: 'tenth', answer: 0 };
+    
+    function rnd(min,max){ return Math.random()*(max-min)+min }
+    function twoDpNumber(){
+      // produce a number with exactly 2 d.p. between 0.01 and 199.99
+      const cents = Math.floor(rnd(1,19999));
+      return (cents/100).toFixed(2);
+    }
+    function roundToTenth(x){ return (Math.round(x*10)/10).toFixed(1); }
+    function roundToWhole(x){ return Math.round(x).toString(); }
+
+    function pickGoal(){
+      const mode = $('#mode').value;
+      if(mode==='tenth' || mode==='whole') return mode;
+      return Math.random()<0.5? 'tenth' : 'whole';
+    }
+
+    function newQuestion(){
+      const nStr = twoDpNumber();
+      const n = Number(nStr);
+      const goal = pickGoal();
+      const answer = goal==='tenth' ? roundToTenth(n) : roundToWhole(n);
+      current = { n, goal, answer };
+      $('#num').textContent = n.toFixed(2);
+      $('#target').textContent = goal==='tenth'? 'Round to nearest TENTH' : 'Round to nearest WHOLE';
+      $('#ans').value=''; $('#ans').focus();
+      $('#feedback').innerHTML='';
+    }
+
+    function normNum(s){
+      if(!s) return null; const x = Number(String(s).trim()); return Number.isFinite(x)? x : null;
+    }
+
+    function check(){
+      const user = normNum($('#ans').value);
+      if(user===null){ $('#feedback').innerHTML='<span class="err">Enter a number (e.g., 12.4 or 12).</span>'; return; }
+      const want = Number(current.answer);
+      total++;
+      // accept 12 vs 12.0 equivalence
+      if(Math.abs(user - want) < 1e-9){
+        correct++; streak++; if(streak%3===0) fair++; // reward sustained accuracy
+        $('#feedback').innerHTML = `<span class="ok">Correct!</span> ${current.n.toFixed(2)} → <b>${current.answer}${current.goal==='tenth'?'</b> (nearest tenth)': '</b> (nearest whole)'}<br><span class="muted">Honesty check passed: careful rounding protects fairness in trade.</span>`;
+      } else {
+        streak = 0; // reset streak
+        const hint = current.goal==='tenth' ? `Check the <b>hundredths</b> digit of ${current.n.toFixed(2)}.` : `Check the <b>tenths</b> digit of ${current.n.toFixed(2)}.`;
+        $('#feedback').innerHTML = `<span class="err">Not quite.</span> ${hint} <br>Answer: <b>${current.answer}</b>`;
+      }
+      updateStats();
+      // auto-advance after short delay
+      setTimeout(newQuestion, 900);
+    }
+
+    function skip(){
+      total++; streak=0; $('#feedback').innerHTML = `Skipped. Answer was <b>${current.answer}</b>.`;
+      updateStats(); setTimeout(newQuestion, 600);
+    }
+
+    function updateStats(){
+      $('#correct').textContent = correct;
+      $('#total').textContent = total;
+      $('#streak').textContent = streak;
+      $('#fair').textContent = fair;
+    }
+
+    // events
+    $('#check').addEventListener('click', check);
+    $('#skip').addEventListener('click', skip);
+    $('#new').addEventListener('click', newQuestion);
+    $('#mode').addEventListener('change', newQuestion);
+    $('#ans').addEventListener('keydown', e=>{ if(e.key==='Enter') check(); });
+
+    // boot
+    newQuestion();
+  </script>
+</body>
+</html>
