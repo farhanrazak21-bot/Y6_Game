@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Y6 Science Interactive — Circulatory & Respiratory</title>
+  <style>
+    :root{--bg:#0f172a;--panel:#0b1220;--card:#111827;--muted:#9aa4b2;--ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--blue:#3b82f6}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial;background:var(--bg);color:#e5e7eb}
+    header{position:sticky;top:0;background:var(--panel);border-bottom:1px solid #1f2937;padding:16px;z-index:10}
+    h1{margin:0;font-size:20px}
+    .sub{color:var(--muted);font-size:13px}
+    .wrap{max-width:1100px;margin:16px auto;padding:0 16px;display:grid;gap:16px}
+    @media(min-width:980px){.wrap{grid-template-columns:1.25fr .75fr}}
+    .card{background:var(--card);border:1px solid #1f2937;border-radius:16px;padding:16px}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+    .tab{background:var(--panel);border:1px solid #243042;border-radius:10px;color:#e5e7eb;padding:10px 12px;cursor:pointer}
+    .tab.active{border-color:var(--ok);box-shadow:0 0 0 2px #14532d inset}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .col{display:flex;flex-direction:column;gap:8px}
+    button{background:var(--panel);border:1px solid #253042;border-radius:10px;color:#e5e7eb;padding:10px 12px;cursor:pointer}
+    button.primary{background:linear-gradient(135deg,#16a34a,#22c55e);border:none;color:#06210d}
+    button.warn{background:#1f1300;border:1px solid #6b4e00;color:#ffd166}
+    input,select,textarea{background:var(--panel);border:1px solid #253042;border-radius:10px;color:#e5e7eb;padding:10px}
+    textarea{min-height:90px}
+    .result{margin-top:10px;padding:10px;border-radius:10px;background:var(--panel);border:1px solid #1f2937}
+    .ok{color:var(--ok)} .err{color:var(--err)} .muted{color:var(--muted)}
+    .grid{display:grid;gap:12px}
+    .stat{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+    .stat .tile{background:#0b1220;border:1px solid #253042;border-radius:10px;padding:10px;text-align:center}
+    .pill{padding:6px 10px;border:1px solid #253042;border-radius:999px;background:#0b1220}
+    canvas{background:#0b1220;border:1px solid #253042;border-radius:10px;max-width:100%}
+    .label{padding:6px 10px;border:1px solid #253042;border-radius:999px;background:#0b1220;cursor:grab;display:inline-block;margin:4px}
+    .slot{border:2px dashed #334155;border-radius:12px;min-height:48px;padding:6px}
+    .breath{width:220px;height:180px;border:1px solid #253042;border-radius:14px;background:#0b1220;position:relative;overflow:hidden}
+    .lungs{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+    .diaphragm{position:absolute;bottom:10px;left:10px;right:10px;height:8px;background:#334155;border-radius:8px}
+    .value-card{background:#0b1220;border:1px solid #253042;border-radius:12px;padding:10px}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Y6 Science Interactive — Circulatory & Respiratory Systems</h1>
+    <div class="sub">Pulse • Prediction • Fair Investigation • Patterns & Graph • Lungs & Breathing • Values: Amanah, Khalifah, Justice</div>
+    <div class="tabs">
+      <button class="tab active" data-tab="pulse">1) Pulse Predictor & Timer</button>
+      <button class="tab" data-tab="invest">2) Investigation Logger & Graph</button>
+      <button class="tab" data-tab="pattern">3) Pattern & Conclusion Builder</button>
+      <button class="tab" data-tab="resp">4) Respiratory System Explorer</button>
+      <button class="tab" data-tab="quiz">5) Quick Check</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <section class="card" id="main">
+      <h2 style="margin:0 0 8px">Activity Panel</h2>
+      <div id="view"></div>
+    </section>
+
+    <aside class="card">
+      <h3 style="margin:0 0 8px">Teacher Prompts & Value Links</h3>
+      <div class="value-card">
+        <ul class="muted" style="margin-left:18px">
+          <li>Start practically: feel pulse at wrist/neck. Allah created body systems in balance.</li>
+          <li><b>Amanah:</b> Caring for body (exercise, food, clean air). Avoid harmful habits.</li>
+          <li><b>Khalifah:</b> Keep air clean; lungs need unpolluted air.</li>
+          <li><b>Fair test:</b> same time (1 min), same body position, same counting method.</li>
+        </ul>
+      </div>
+      <div class="result">Saved sets: <b id="savedCount">0</b></div>
+    </aside>
+  </div>
+
+  <script>
+    const $=(s,el=document)=>el.querySelector(s); const $$=(s,el=document)=>[...el.querySelectorAll(s)];
+    const STORE_KEY='y6_sci_pulse_sets_v1';
+    let dataset = JSON.parse(localStorage.getItem(STORE_KEY)||'[]');
+    const saveData=()=>{ localStorage.setItem(STORE_KEY, JSON.stringify(dataset)); $('#savedCount').textContent=dataset.length; };
+    $('#savedCount').textContent=dataset.length;
+
+    $$('.tab').forEach(t=>t.addEventListener('click',()=>{ $$('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active');
+      const id=t.dataset.tab; if(id==='pulse') renderPulse(); if(id==='invest') renderInvest(); if(id==='pattern') renderPattern(); if(id==='resp') renderResp(); if(id==='quiz') renderQuiz(); }));
+
+    // 1) Pulse Predictor & Timer (spacebar taps in 15s → x4 = bpm)
+    function renderPulse(){
+      const v=$('#view'); v.innerHTML='';
+      const ui=document.createElement('div');
+      ui.innerHTML=`
+        <div class="row"><div class="pill">Mode</div>
+          <select id="cond">
+            <option>Resting</option>
+            <option>Running</option>
+            <option>Jumping</option>
+            <option>Other</option>
+          </select>
+          <button id="predict" class="warn">Make a Prediction</button>
+          <button id="start" class="primary">Start 15s Timer</button>
+          <span class="muted">Tap <b>SPACE</b> each beat you feel.</span>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <div class="pill">Beats counted: <b id="count">0</b></div>
+          <div class="pill">Time left: <b id="time">15</b>s</div>
+          <div class="pill">Estimated bpm: <b id="bpm">0</b></div>
+        </div>
+        <div class="row" style="margin-top:8px"><input id="note" placeholder="Notes (e.g., standing, post-run 30s)" style="min-width:260px"/> <button id="save" class="primary">Save to Investigation</button></div>
+        <div class="result" id="out"></div>
+        <div class="result muted">Reminder: For a <b>fair investigation</b> keep duration, position, and method the same for each condition.</div>
+      `; v.appendChild(ui);
+      let countdown=null, left=15, count=0; let listening=false;
+      function reset(){ left=15; count=0; $('#time').textContent=left; $('#count').textContent=count; $('#bpm').textContent='0'; $('#out').textContent=''; }
+      function key(e){ if(!listening) return; if(e.code==='Space'){ count++; $('#count').textContent=count; $('#bpm').textContent = String(count*4); e.preventDefault(); } }
+      document.addEventListener('keydown', key);
+      $('#predict').onclick=()=>{ const c=$('#cond').value; const guess = c==='Resting'? '60–80 bpm' : c==='Running'? '100–160 bpm' : c==='Jumping'? '110–170 bpm' : 'It should increase with activity'; $('#out').innerHTML = `<span class="ok">Prediction:</span> ${guess}`; };
+      $('#start').onclick=()=>{ if(countdown) return; reset(); listening=true; countdown=setInterval(()=>{ left--; $('#time').textContent=left; if(left<=0){ clearInterval(countdown); countdown=null; listening=false; $('#out').innerHTML = `<span class="ok">Time!</span> Estimated pulse ≈ <b>${count*4} bpm</b>`; } },1000); };
+      $('#save').onclick=()=>{ const entry={ condition: $('#cond').value, beats15: count, bpm: count*4, notes: ($('#note').value||'').trim(), ts: Date.now() }; dataset.push(entry); saveData(); $('#out').innerHTML='<span class="ok">Saved.</span> Open "Investigation Logger & Graph" to see the table.'; };
+      // cleanup when leaving tab
+      const obs=new MutationObserver(()=>{ if(!document.body.contains(v)){ document.removeEventListener('keydown',key); clearInterval(countdown); }}); obs.observe(document.body,{childList:true,subtree:true});
+    }
+
+    // 2) Investigation Logger & Graph
+    function renderInvest(){
+      const v=$('#view'); v.innerHTML='';
+      const ui=document.createElement('div');
+      ui.innerHTML=`
+        <div class="row">
+          <button id="addRow">Add Blank Row</button>
+          <button id="importPulse" class="primary">Import from Timer</button>
+          <button id="clear" class="warn">Clear All</button>
+        </div>
+        <div class="grid" style="grid-template-columns:1fr;gap:8px;margin-top:8px">
+          <table id="tab" style="width:100%;border-collapse:separate;border-spacing:0 6px">
+            <thead><tr>
+              <th style="text-align:left">Condition</th>
+              <th style="text-align:left">Beats (15s)</th>
+              <th style="text-align:left">BPM (×4)</th>
+              <th style="text-align:left">Notes</th>
+              <th></th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="row"><label>Graph Type</label>
+            <select id="gtype"><option value="bar">Bar</option><option value="line">Line</option></select>
+            <button id="plot" class="primary">Plot Graph</button>
+          </div>
+          <canvas id="chart" width="800" height="320"></canvas>
+          <div class="result muted">Tip: Make it a fair test — same duration, rest between activities, measure at wrist/neck consistently.</div>
+        </div>
+      `; v.appendChild(ui);
+
+      const tbody=$('#tab tbody');
+      function renderTable(){ tbody.innerHTML=''; dataset.forEach((r,i)=>{ const tr=document.createElement('tr'); tr.innerHTML=`
+          <td><input value="${r.condition||''}"/></td>
+          <td><input value="${r.beats15||0}"/></td>
+          <td><input value="${r.bpm||0}"/></td>
+          <td><input value="${r.notes||''}"/></td>
+          <td><button data-i="${i}" class="warn">Delete</button></td>`; tbody.appendChild(tr); });
+        $$('td .warn', tbody).forEach(btn=> btn.addEventListener('click', e=>{ const i=Number(e.target.dataset.i); dataset.splice(i,1); saveData(); renderTable(); draw(); }));
+        // keep dataset in sync with inputs
+        $$('tbody tr').forEach((tr,i)=>{
+          const ins=tr.querySelectorAll('input');
+          ins.forEach(()=>{});
+          tr.addEventListener('input',()=>{ dataset[i]={ condition:ins[0].value, beats15:Number(ins[1].value)||0, bpm:Number(ins[2].value)||0, notes:ins[3].value, ts: dataset[i]?.ts||Date.now() }; saveData(); });
+        });
+      }
+      renderTable();
+      $('#addRow').onclick=()=>{ dataset.push({condition:'',beats15:0,bpm:0,notes:'',ts:Date.now()}); saveData(); renderTable(); };
+      $('#importPulse').onclick=()=>{ renderTable(); };
+      $('#clear').onclick=()=>{ if(confirm('Delete all saved rows?')){ dataset=[]; saveData(); renderTable(); draw(true); } };
+
+      const ctx=$('#chart').getContext('2d');
+      function draw(clearOnly){ const w=ctx.canvas.width, h=ctx.canvas.height; ctx.clearRect(0,0,w,h); if(clearOnly) return; const data=dataset.map(d=>d.bpm); const labels=dataset.map(d=>d.condition||'—'); if(!data.length) return; const max=Math.max(...data, 10); const pad=40; const bw=Math.floor((w-pad*2)/data.length)-10; // bar width
+        // axes
+        ctx.strokeStyle='#334155'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(pad,10); ctx.lineTo(pad,h-pad); ctx.lineTo(w-10,h-pad); ctx.stroke();
+        // y ticks
+        ctx.fillStyle='#94a3b8'; ctx.font='12px system-ui'; const ticks=5; for(let i=0;i<=ticks;i++){ const y=h-pad - (i*(h-pad-20)/ticks); const val=Math.round((i*ticks? (i*(max/ticks)) : 0)); ctx.fillText(String(Math.round(i*(max/ticks))), 8, y+4); ctx.strokeStyle='#253042'; ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(w-10,y); ctx.stroke(); }
+        // bars or line
+        const gtype=$('#gtype').value; const xs=[]; const ys=[]; data.forEach((v,idx)=>{ const x=pad+10+idx*(bw+10); const y=h-pad - (v/max)*(h-pad-20); xs.push(x+bw/2); ys.push(y); if(gtype==='bar'){ ctx.fillStyle='#22c55e'; ctx.fillRect(x,y,bw,(h-pad)-y); } });
+        if($('#gtype').value==='line'){ ctx.strokeStyle='#3b82f6'; ctx.lineWidth=2; ctx.beginPath(); xs.forEach((cx,i)=>{ if(i===0) ctx.moveTo(cx,ys[i]); else ctx.lineTo(cx,ys[i]); }); ctx.stroke(); xs.forEach((cx,i)=>{ ctx.fillStyle='#3b82f6'; ctx.beginPath(); ctx.arc(cx,ys[i],4,0,Math.PI*2); ctx.fill(); }); }
+        // x labels
+        labels.forEach((lab,idx)=>{ const x=pad+10+idx*(bw+10)+2; ctx.fillStyle='#94a3b8'; ctx.save(); ctx.translate(x, h-pad+12); ctx.rotate(-Math.PI/8); ctx.fillText(lab, 0,0); ctx.restore(); });
+      }
+      $('#plot').onclick=()=>draw();
+      draw();
+    }
+
+    // 3) Pattern & Conclusion Builder
+    function renderPattern(){
+      const v=$('#view'); v.innerHTML='';
+      const ui=document.createElement('div');
+      ui.innerHTML=`
+        <div class="grid" style="grid-template-columns:1fr 1fr;gap:12px">
+          <div class="col">
+            <div class="pill">Auto-scan your saved investigation and build sentences</div>
+            <button id="scan" class="primary">Scan Data</button>
+            <textarea id="pattern" placeholder="Describe the pattern you see (e.g., pulse increased with activity)"></textarea>
+            <textarea id="conclude" placeholder="Write a fair conclusion with evidence"></textarea>
+          </div>
+          <div class="col">
+            <div class="pill">Sentence Starters</div>
+            <div class="result" id="suggest"></div>
+            <div class="result muted">Values: Be honest about results even if they don’t match your prediction. Link to <b>amanah</b> (trust) and <b>khalifah</b> (care for clean air).</div>
+          </div>
+        </div>
+      `; v.appendChild(ui);
+      function analyse(){ if(!dataset.length){ $('#suggest').innerHTML='No data saved yet. Use the timer and logger first.'; return; }
+        const byCond={}; dataset.forEach(r=>{ const k=r.condition||'—'; byCond[k]=(byCond[k]||[]); byCond[k].push(r.bpm); });
+        const avgs=Object.entries(byCond).map(([k,arr])=>[k, Math.round(arr.reduce((s,x)=>s+x,0)/arr.length)]).sort((a,b)=>a[1]-b[1]);
+        let text='<ul>'; avgs.forEach(([k,v])=> text+=`<li>Average <b>${k}</b> ≈ <b>${v} bpm</b></li>`); text+='</ul>';
+        let pattern='Pulse rate tended to be lower at rest and higher during exercise.';
+        if(avgs.length>=2){ const first=avgs[0], last=avgs[avgs.length-1]; pattern = `Pulse increased from about ${first[1]} bpm (${first[0]}) to about ${last[1]} bpm (${last[0]}).`; }
+        $('#suggest').innerHTML = text + `<div class="result"><b>Suggested Pattern:</b> ${pattern}</div>`;
+        $('#pattern').value = pattern;
+        $('#conclude').value = pattern + ' This supports the prediction that exercise raises pulse rate. The test was fair because we kept time constant and used the same measuring method.';
+      }
+      $('#scan').onclick=analyse; analyse();
+    }
+
+    // 4) Respiratory System Explorer (labels + breathing animation)
+    function renderResp(){
+      const v=$('#view'); v.innerHTML='';
+      const ui=document.createElement('div');
+      ui.innerHTML=`
+        <div class="grid" style="grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <div class="muted">Drag labels to the correct slot</div>
+            <div class="row" id="labels"></div>
+            <div class="grid" style="grid-template-columns:1fr;gap:8px;margin-top:8px">
+              <div class="slot" data-id="trachea">Trachea (windpipe)</div>
+              <div class="slot" data-id="lungs">Lungs</div>
+              <div class="slot" data-id="diaphragm">Diaphragm</div>
+            </div>
+            <div class="result" id="labOut"></div>
+            <button id="checkLab" class="primary">Check Labels</button>
+          </div>
+          <div>
+            <div class="muted">Breathing Model (click Inhale / Exhale)</div>
+            <div class="breath">
+              <svg class="lungs" viewBox="0 0 200 160" width="200" height="160">
+                <path id="lungL" d="M80,20 C40,40 40,110 90,130 C110,140 120,120 120,100 C120,70 110,40 80,20" fill="#14532d" stroke="#22c55e" stroke-width="2"/>
+                <path id="lungR" d="M120,20 C160,40 160,110 110,130 C90,140 80,120 80,100 C80,70 90,40 120,20" fill="#14532d" stroke="#22c55e" stroke-width="2"/>
+                <rect x="98" y="10" width="4" height="40" fill="#93c5fd"/>
+              </svg>
+              <div class="diaphragm" id="dia"></div>
+            </div>
+            <div class="row" style="margin-top:8px"><button id="inhale" class="primary">Inhale</button><button id="exhale" class="warn">Exhale</button></div>
+            <div class="result" id="breathOut">Inhale: chest expands, diaphragm moves down. Exhale: chest relaxes, diaphragm moves up.</div>
+          </div>
+        </div>
+        <div class="result muted" style="margin-top:10px">Reflection: Each breath is a gift — say <i>Alhamdulillah</i>. Protect lungs by keeping air clean and avoiding harmful smoke.</div>
+      `; v.appendChild(ui);
+      // Labels
+      const names=['trachea','lungs','diaphragm']; const pretty={trachea:'Trachea',lungs:'Lungs',diaphragm:'Diaphragm'};
+      const L=$('#labels'); names.sort(()=>0.5-Math.random()).forEach(n=>{ const el=document.createElement('div'); el.className='label'; el.textContent=pretty[n]; el.draggable=true; el.dataset.id=n; el.id='lab_'+n; el.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain',el.id)); L.appendChild(el); });
+      $$('.slot').forEach(slot=>{ slot.addEventListener('dragover',e=>{e.preventDefault(); slot.style.outline='2px solid var(--ok)'}); slot.addEventListener('dragleave',()=>slot.style.outline='none'); slot.addEventListener('drop',e=>{e.preventDefault(); slot.style.outline='none'; const id=e.dataTransfer.getData('text/plain'); const chip=document.getElementById(id); if(chip) slot.innerHTML=''; if(chip) slot.appendChild(chip); }); });
+      $('#checkLab').onclick=()=>{ let ok=true; const wrong=[]; $$('.slot').forEach(s=>{ const child=[...s.children].find(c=>c.classList && c.classList.contains('label')); if(!child || child.dataset.id!==s.dataset.id){ ok=false; wrong.push(s.dataset.id); } }); $('#labOut').innerHTML = ok? '<span class="ok">All correct — great labeling!</span>' : '<span class="err">Fix these:</span> '+wrong.join(', '); };
+      // Breathing animation
+      const lungL=$('#lungL'), lungR=$('#lungR'), dia=$('#dia');
+      function setInhale(on){ lungL.setAttribute('fill', on? '#1e7341':'#14532d'); lungR.setAttribute('fill', on? '#1e7341':'#14532d'); dia.style.transform = on? 'translateY(8px)':'translateY(0)'; $('#breathOut').innerHTML = on? '<span class="ok">Inhale</span>: chest expands, diaphragm moves down.' : '<span class="ok">Exhale</span>: chest relaxes, diaphragm moves up.'; }
+      $('#inhale').onclick=()=>setInhale(true); $('#exhale').onclick=()=>setInhale(false);
+    }
+
+    // 5) Quick Check (heartbeat vs pulse; fair test; lungs function)
+    function renderQuiz(){
+      const v=$('#view'); v.innerHTML='';
+      const qs=[
+        {q:'Heartbeat vs pulse — are they related? (yes/no)', a:'yes', explain:'Pulse is the pressure wave from each heartbeat felt at arteries.'},
+        {q:'To make a fair investigation, keep time the same for each condition. (true/false)', a:'true', explain:'Control variables like duration, position, method.'},
+        {q:'During exercise, pulse usually (increase/decrease).', a:'increase', explain:'Muscles need more oxygen — heart pumps faster.'},
+        {q:'Name the muscle under the lungs that helps breathing.', a:'diaphragm', explain:'It moves down to inhale and up to exhale.'},
+        {q:'Clean air protects which system most directly? (respiratory/circulatory)', a:'respiratory', explain:'Lungs exchange gases; polluted air harms them.'}
+      ]; let i=0, ok=0;
+      const ui=document.createElement('div');
+      ui.innerHTML=`
+        <div id="q" style="font-size:22px;margin-bottom:8px"></div>
+        <div class="row"><input id="a" placeholder="Type answer"/> <button id="next" class="primary">Submit</button></div>
+        <div class="result" id="out"></div>
+        <div class="stat"><div class="tile">Correct<br><b id="c">0</b></div><div class="tile">Total<br><b id="t">0</b></div><div class="tile">Aim<br><b>4+/5</b></div><div class="tile">Value<br><b>Be honest & fair</b></div></div>
+      `; v.appendChild(ui);
+      const norm=s=>String(s).toLowerCase().replace(/\s+/g,' ').trim();
+      function show(){ $('#q').textContent = `Q${i+1}. ${qs[i].q}`; $('#a').value=''; $('#out').textContent=''; $('#a').focus(); }
+      $('#next').onclick=()=>{ const want=qs[i].a; const got=norm($('#a').value); if(got===norm(want)){ ok++; $('#out').innerHTML='<span class="ok">Correct.</span>'; } else { $('#out').innerHTML=`<span class="err">Answer:</span> <b>${want}</b><br><span class="muted">${qs[i].explain}</span>`; } $('#c').textContent=ok; $('#t').textContent=(i+1); i++; if(i<qs.length){ setTimeout(show,650);} else { $('#q').innerHTML='Finished. Score: '+ok+'/'+qs.length; $('#a').disabled=true; $('#next').disabled=true; } };
+      show();
+    }
+
+    // boot
+    renderPulse();
+  </script>
+</body>
+</html>
