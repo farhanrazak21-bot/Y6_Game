@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Y6 Interactive Decimal Game</title>
+  <style>
+    :root {
+      --bg:#0f172a; --card:#111827; --muted:#94a3b8; --accent:#22c55e; --warn:#f59e0b; --err:#ef4444;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial;color:#e5e7eb;background:var(--bg)}
+    header{padding:16px 20px;background:#0b1220;position:sticky;top:0;z-index:10;border-bottom:1px solid #1f2937}
+    h1{margin:0;font-size:20px}
+    .sub{color:var(--muted);font-size:13px}
+    .wrap{max-width:1100px;margin:16px auto;padding:0 16px}
+    .badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .badge{border:1px solid #243042;border-radius:999px;padding:6px 10px;font-size:12px;color:#cbd5e1;background:#0b1220}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+    .tab{background:#0b1220;border:1px solid #1f2937;padding:10px 12px;border-radius:10px;cursor:pointer}
+    .tab.active{border-color:var(--accent);box-shadow:0 0 0 2px #134e4a inset}
+    .grid{display:grid;gap:16px}
+    @media(min-width:900px){.grid{grid-template-columns:1.2fr .8fr}}
+    .card{background:var(--card);border:1px solid #1f2937;border-radius:16px;padding:16px}
+    .title{font-weight:700;margin:0 0 8px}
+    .muted{color:var(--muted)}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    button{background:#0b1220;color:#e5e7eb;border:1px solid #1f2937;padding:10px 12px;border-radius:10px;cursor:pointer}
+    button.primary{background:linear-gradient(135deg,#16a34a,#22c55e);border:none;color:#06210d}
+    button.warn{background:#1f1300;border:1px solid #6b4e00;color:#ffd166}
+    input,select{background:#0b1220;border:1px solid #1f2937;border-radius:10px;padding:10px;color:#e5e7eb}
+    .pv-board{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:10px}
+    .pv-cell{border:1px dashed #374151;border-radius:10px;min-height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative}
+    .pv-cell .lbl{position:absolute;top:6px;left:6px;font-size:11px;color:#9ca3af}
+    .drags{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .drag{background:#0b1220;border:1px solid #374151;border-radius:10px;padding:10px 14px;font-size:18px;cursor:grab}
+    .drop-ok{outline:2px solid var(--accent)}
+    .wrong{outline:2px solid var(--err)}
+    .score{font-weight:700}
+    .notice{font-size:13px;color:#a1a1aa}
+    .result{margin-top:10px;padding:10px;border-radius:10px;background:#0b1220;border:1px solid #1f2937}
+    .big{font-size:28px;letter-spacing:.5px}
+    .numline{display:flex;gap:6px;flex-wrap:wrap}
+    .pill{padding:6px 10px;border-radius:999px;background:#0b1220;border:1px solid #1f2937}
+    .coins{display:flex;gap:8px;flex-wrap:wrap}
+    .coin{padding:10px 12px;border-radius:999px;background:#0b1220;border:1px solid #1f2937}
+    .flex{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .list{margin:6px 0 0 18px}
+    .footer{margin-top:12px;color:#a3a3a3;font-size:12px}
+    .ok{color:#22c55e}
+    .err{color:#ef4444}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Y6 Interactive Decimal Game</h1>
+    <div class="sub">Place Value • × ÷ 10/100/1000 • Decomposition • Fairness & Avoiding Waste</div>
+    <div class="badges">
+      <div class="badge">LO: MA‑Y6‑U1‑S1/4 · S1/5 · S1/6</div>
+      <div class="badge">ISSC6 · QS‑Y6‑U1‑S2 — Honesty & Justice in dealings</div>
+      <div class="badge">ECOS5 — Conservation (accuracy prevents israf)</div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" data-tab="place">1) Place Value Lab</button>
+      <button class="tab" data-tab="shift">2) Shift Master × ÷</button>
+      <button class="tab" data-tab="market">3) Decimal Market</button>
+      <button class="tab" data-tab="quiz">4) Quick Quiz</button>
+    </div>
+  </header>
+
+  <div class="wrap grid">
+    <!-- MAIN -->
+    <section id="main" class="card">
+      <h2 class="title">Activity Panel</h2>
+      <!-- Dynamic content goes here -->
+      <div id="view"></div>
+    </section>
+
+    <!-- SIDEBAR / TEACHER PROMPTS -->
+    <aside class="card">
+      <h3 class="title">Teacher Prompts & Links to Values</h3>
+      <ul class="list">
+        <li>Warm‑up: <em>Human Place Value Chart</em> ➜ mimic here by dragging digits into Ones/Tenths/Hundredths/Thousandths.</li>
+        <li>Honesty in trade: RM <span class="pill">0.5</span> vs <span class="pill">0.05</span> — a misplaced digit can create injustice.</li>
+        <li>Shift Master: Emphasise “digits move, decimal stays“. ×10 left, ÷10 right.</li>
+        <li>Decomposition: Multiple valid regroupings (e.g., 1.25 = 1 + 0.25 = 0.5 + 0.5 + 0.25). Accurate measures conserve resources (ECOS5).</li>
+        <li>Reflection: “How does accuracy with decimals ensure fairness and prevent waste?”</li>
+      </ul>
+      <div class="footer">Tip: Use mini‑whiteboards alongside the game for quick checks.</div>
+    </aside>
+  </div>
+
+  <script>
+    // Utility helpers
+    const $ = (sel, el=document) => el.querySelector(sel);
+    const $$ = (sel, el=document) => [...el.querySelectorAll(sel)];
+
+    // Global score
+    let score = 0, attempts = 0;
+    const addScore = (pts) => { score += pts; attempts++; renderScore(); };
+    const renderScore = () => {
+      let bar = document.getElementById('scorebar');
+      if(!bar){
+        const b = document.createElement('div');
+        b.id = 'scorebar';
+        b.className = 'result';
+        b.innerHTML = `<div><span class="score">Score:</span> <span id="scv">${score}</span>  ·  Attempts: <span id="atv">${attempts}</span></div>`;
+        $('#main').appendChild(b);
+      } else {
+        $('#scv').textContent = score;
+        $('#atv').textContent = attempts;
+      }
+    };
+
+    // TAB HANDLER
+    $$('.tab').forEach(t=>t.addEventListener('click',()=>{
+      $$('.tab').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      const id = t.dataset.tab;
+      if(id==='place') renderPlaceValue();
+      if(id==='shift') renderShiftMaster();
+      if(id==='market') renderMarket();
+      if(id==='quiz') renderQuiz();
+    }));
+
+    // ========================= 1) PLACE VALUE LAB =========================
+    function randomDecimal(){
+      // up to thousands with thousandths, e.g., 12.345 or 3.452
+      const whole = Math.floor(Math.random()*9)+1; // 1–9
+      const ones = Math.random()<0.4 ? 0 : whole; // sometimes 0
+      const tenths = Math.floor(Math.random()*10);
+      const hundredths = Math.floor(Math.random()*10);
+      const thousandths = Math.floor(Math.random()*10);
+      const before = Math.random()<0.3 ? Math.floor(Math.random()*90)+10 : ones; // sometimes 2‑digit whole
+      let num = `${before}.${tenths}${hundredths}${thousandths}`;
+      if(Math.random()<0.2) num = `0.${tenths}${hundredths}${thousandths}`;
+      return num.replace(/\.$/,'');
+    }
+
+    function renderPlaceValue(){
+      const v = $('#view'); v.innerHTML = '';
+      const start = randomDecimal();
+      const cols = [
+        {key:'th', label:'Thousands (optional)', accept:null},
+        {key:'ones', label:'Ones', accept:'ones'},
+        {key:'t', label:'Tenths', accept:'t'},
+        {key:'h', label:'Hundredths', accept:'h'},
+        {key:'thou', label:'Thousandths', accept:'thou'},
+      ];
+      const wrap = document.createElement('div');
+      wrap.innerHTML = `
+        <div class="row">
+          <div class="big">Number: <strong id="pvnum">${start}</strong></div>
+          <button id="newpv">New</button>
+          <button id="checkpv" class="primary">Check</button>
+          <button id="hintpv" class="warn">Hint</button>
+        </div>
+        <div class="notice">Drag each highlighted digit to its correct place. Decimal point stays between Ones and Tenths.</div>
+        <div class="pv-board" id="pvboard"></div>
+        <div class="drags" id="pvdrags"></div>
+        <div class="result" id="pvres"></div>
+      `;
+      v.appendChild(wrap);
+
+      const digits = start.split('');
+      const pointIndex = digits.indexOf('.');
+      const ones = pointIndex===-1 ? digits[digits.length-1] : (digits[pointIndex-1]||'0');
+      const tenths = pointIndex===-1 ? '0' : (digits[pointIndex+1]||'0');
+      const hundredths = pointIndex===-1 ? '0' : (digits[pointIndex+2]||'0');
+      const thousandths = pointIndex===-1 ? '0' : (digits[pointIndex+3]||'0');
+
+      const board = $('#pvboard');
+      cols.forEach(c=>{
+        const cell = document.createElement('div');
+        cell.className = 'pv-cell'; cell.dataset.accept = c.accept||''; cell.dataset.key=c.key;
+        cell.innerHTML = `<div class="lbl">${c.label}</div><div class="slot" style="font-size:24px"></div>`;
+        cell.addEventListener('dragover',e=>{e.preventDefault(); cell.classList.add('drop-ok');});
+        cell.addEventListener('dragleave',()=>cell.classList.remove('drop-ok'));
+        cell.addEventListener('drop',e=>{
+          e.preventDefault(); cell.classList.remove('drop-ok');
+          const id = e.dataTransfer.getData('text/plain');
+          const el = document.getElementById(id);
+          if(cell.dataset.accept && el.dataset.role===cell.dataset.accept){
+            cell.querySelector('.slot').innerHTML='';
+            cell.querySelector('.slot').appendChild(el);
+          } else {
+            cell.classList.add('wrong'); setTimeout(()=>cell.classList.remove('wrong'),500);
+          }
+        });
+        board.appendChild(cell);
+      });
+
+      // Draggables (only Ones/Tenths/Hundredths/Thousandths digits)
+      const dr = $('#pvdrags');
+      const makeDrag=(txt,role)=>{
+        const d = document.createElement('div');
+        d.className='drag'; d.textContent=txt; d.draggable=true; d.id='drag_'+role; d.dataset.role=role;
+        d.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',d.id)});
+        dr.appendChild(d);
+      }
+      makeDrag(ones,'ones');
+      makeDrag(tenths,'t');
+      makeDrag(hundredths,'h');
+      makeDrag(thousandths,'thou');
+
+      // Riddle builder
+      const rbox = document.createElement('div');
+      rbox.className='result';
+      rbox.innerHTML = `
+        <div style="font-weight:700;margin-bottom:6px">Decimal Detective Riddle</div>
+        <div id="rtext"></div>
+        <div class="row" style="margin-top:6px"><input id="rguess" placeholder="Type your decimal"/> <button id="rcheck">Check</button> <button id="rnew">New riddle</button></div>
+        <div id="rout" class="notice"></div>
+      `;
+      v.appendChild(rbox);
+
+      const riddle = ()=>{
+        const d = $('#pvnum').textContent;
+        const pi = d.indexOf('.');
+        const t = (d[pi+1]||'0'), h=(d[pi+2]||'0'), th=(d[pi+3]||'0');
+        const pool = [
+          {txt:`I am a decimal with <b>${t}</b> in the tenths place.`, mask:(x)=>x.indexOf('.')>-1 && x.split('.')[1][0]===t},
+          {txt:`I am a decimal with <b>${h}</b> in the hundredths place.`, mask:(x)=>x.indexOf('.')>-1 && (x.split('.')[1][1]||'0')===h},
+          {txt:`I am a decimal with <b>${th}</b> in the thousandths place.`, mask:(x)=>x.indexOf('.')>-1 && (x.split('.')[1][2]||'0')===th},
+        ];
+        const pick = pool[Math.floor(Math.random()*pool.length)];
+        $('#rtext').innerHTML = pick.txt + ' Type a matching example.';
+        return pick.mask;
+      }
+      let mask = riddle();
+      $('#rnew').onclick=()=>{mask=riddle(); $('#rout').textContent=''}
+      $('#rcheck').onclick=()=>{
+        const g = $('#rguess').value.trim();
+        if(mask(g)){ addScore(2); $('#rout').innerHTML='<span class="ok">Great! Your example fits the riddle.</span>'; }
+        else { addScore(0); $('#rout').innerHTML='<span class="err">Not quite. Check the specified place value.</span>'; }
+      }
+
+      // Check placement
+      $('#checkpv').onclick=()=>{
+        const get = (role)=>{
+          const el = document.getElementById('drag_'+role);
+          if(!el || !el.parentElement) return null;
+          const cell = el.closest('.pv-cell');
+          return cell ? cell.dataset.key : null;
+        }
+        const ok = get('ones')==='ones' && get('t')==='t' && get('h')==='thou' ? false : true; // placeholder to force evaluation
+        const good = get('ones')==='ones' && get('t')==='t' && get('h')==='h' && get('thou')==='thou';
+        if(good){ $('#pvres').innerHTML='<span class="ok">Correct placement! Decimal point stays fixed between Ones and Tenths.</span>'; addScore(3); }
+        else { $('#pvres').innerHTML='<span class="err">Check again. Make sure each digit is in the correct column.</span>'; addScore(0); }
+      };
+      $('#hintpv').onclick=()=>{
+        $('#pvres').innerHTML='Hint: In 3.<b>4</b>5, the 4 is in the <b>tenths</b> place; in 0.0<b>5</b>, the 5 is in the <b>hundredths</b> place.';
+      }
+      $('#newpv').onclick=renderPlaceValue;
+      renderScore();
+    }
+
+    // ========================= 2) SHIFT MASTER =========================
+    function renderShiftMaster(){
+      const v = $('#view'); v.innerHTML='';
+      const start = (Math.random()<0.5? (Math.random()*9+0.1).toFixed(3) : (Math.random()*99+1).toFixed(1));
+      v.innerHTML = `
+        <div class="row">
+          <div class="big">Start: <strong id="snum">${start}</strong></div>
+          <select id="op">
+            <option value="x10">× 10</option>
+            <option value="x100">× 100</option>
+            <option value="x1000">× 1000</option>
+            <option value="/10">÷ 10</option>
+            <option value="/100">÷ 100</option>
+            <option value="/1000">÷ 1000</option>
+          </select>
+          <input id="ans" placeholder="Your result" />
+          <button id="check" class="primary">Check</button>
+          <button id="new" >New</button>
+        </div>
+        <div class="notice">Rule: <b>Digits move</b> left (×) or right (÷). The <b>decimal point stays</b>.</div>
+        <div class="numline" id="demo"></div>
+        <div class="result" id="out"></div>
+      `;
+
+      const calc = (n,op)=>{
+        const x = Number(n);
+        if(op==='x10') return x*10;
+        if(op==='x100') return x*100;
+        if(op==='x1000') return x*1000;
+        if(op==='/10') return x/10;
+        if(op==='/100') return x/100;
+        if(op==='/1000') return x/1000;
+      }
+
+      const demo = ()=>{
+        const n = $('#snum').textContent; const op=$('#op').value;
+        const places = {x10:1,x100:2,x1000:3,'/10':-1,'/100':-2,'/1000':-3}[op];
+        const digits = n.replace('.','').split('');
+        const dp = n.indexOf('.');
+        const before = dp===-1? n.length : dp;
+        const pointer = before + places;
+        const shown = [...digits];
+        shown.splice(pointer,0,'.');
+        $('#demo').innerHTML = `<div>Move pointer by <span class="pill">${places>0? '+'+places:places}</span>: <span class="pill">${shown.join('')}</span></div>`;
+      };
+      $('#op').onchange=demo; demo();
+
+      $('#check').onclick=()=>{
+        const n = $('#snum').textContent; const op=$('#op').value; const want = calc(n,op);
+        const got = Number($('#ans').value);
+        if(Number.isFinite(got) && Math.abs(got - want) < 1e-9){
+          $('#out').innerHTML = '<span class="ok">Correct! Fair dealing needs this precision (ISSC6).</span>';
+          addScore(3);
+        } else {
+          $('#out').innerHTML = `<span class="err">Not quite. Correct answer: <b>${want}</b>. Remember: digits shift, decimal stays.</span>`;
+          addScore(0);
+        }
+      };
+      $('#new').onclick=renderShiftMaster;
+      renderScore();
+    }
+
+    // ========================= 3) DECIMAL MARKET (DECOMPOSITION) =========================
+    function renderMarket(){
+      const v = $('#view'); v.innerHTML='';
+      const target = (Math.random()*1.8 + 0.2).toFixed(2); // RM0.20–RM2.00
+      let sum = 0;
+      const coins = [1.00,0.50,0.25,0.10,0.05,0.01];
+      const fmt = n => 'RM ' + Number(n).toFixed(2);
+
+      const ui = document.createElement('div');
+      ui.innerHTML = `
+        <div class="row">
+          <div class="big">Price tag: <strong id="tgt">${fmt(target)}</strong></div>
+          <button id="reset">Reset</button>
+          <button id="newm">New Item</button>
+        </div>
+        <div class="coins" id="coins"></div>
+        <div class="result" id="bill"></div>
+        <div class="notice">Goal: Pay exactly with decompositions. <b>Accuracy prevents waste</b> (ECOS5). Multiple correct ways are possible.</div>
+      `;
+      v.appendChild(ui);
+
+      const update = ()=>{
+        const waste = Math.max(0, (sum - Number(target))).toFixed(2);
+        $('#bill').innerHTML = `You paid: <b>${fmt(sum)}</b> · Waste/Change: <b class="${waste>0?'warn':''}">${fmt(waste)}</b>`;
+        if(Math.abs(sum - Number(target)) < 1e-9){
+          $('#bill').innerHTML += ` <div class="ok">Exact! Justice in prices means no cheating, no short‑changing (QS‑Y6‑U1‑S2).</div>`;
+          addScore(3);
+        }
+      };
+
+      const area = $('#coins');
+      coins.forEach(c=>{
+        const b = document.createElement('button');
+        b.className='coin'; b.textContent = fmt(c);
+        b.addEventListener('click',()=>{ sum = Number((sum + c).toFixed(2)); update(); });
+        area.appendChild(b);
+      });
+
+      $('#reset').onclick=()=>{ sum=0; update(); };
+      $('#newm').onclick=renderMarket;
+      update();
+      renderScore();
+    }
+
+    // ========================= 4) QUICK QUIZ =========================
+    function renderQuiz(){
+      const v = $('#view'); v.innerHTML='';
+      const q = [
+        {t:'Value of 7 in 12.078 is …', a:'0.07'},
+        {t:'3.4 × 100 =', a:'340'},
+        {t:'0.056 ÷ 1000 =', a:'0.000056'},
+        {t:'Decompose 1.25 into 1 + …', a:'0.25'},
+        {t:'Which is larger: 0.5 or 0.05 ?', a:'0.5'},
+        {t:'Thousandths digit of 3.452 is …', a:'2'},
+      ];
+      let idx = 0; let correct = 0;
+      const ui = document.createElement('div');
+      ui.innerHTML = `
+        <div id="qt" class="big"></div>
+        <div class="row"><input id="qa" placeholder="Type answer"/> <button id="next" class="primary">Submit</button></div>
+        <div id="qo" class="result"></div>
+      `;
+      v.appendChild(ui);
+
+      const show = ()=>{ $('#qt').innerHTML = `Q${idx+1}. ${q[idx].t}`; $('#qa').value=''; $('#qa').focus(); $('#qo').textContent=''; };
+      const submit=()=>{
+        const a = $('#qa').value.trim();
+        if(a===''){ $('#qo').innerHTML='<span class="err">Enter an answer.</span>'; return; }
+        if(a===q[idx].a){ correct++; addScore(2); $('#qo').innerHTML='<span class="ok">Correct.</span>'; }
+        else { addScore(0); $('#qo').innerHTML=`<span class="err">Not quite. Answer: <b>${q[idx].a}</b></span>`; }
+        idx++;
+        if(idx<q.length){ setTimeout(show,600); } else {
+          $('#qt').innerHTML = `Finished. Score: <b>${correct}/${q.length}</b>.`;
+          $('#qo').innerHTML = `<div>Fairness check: Accuracy with decimals protects everyone in trade and measurement.</div>`;
+          $('#qa').disabled=true; $('#next').disabled=true;
+        }
+      };
+      $('#next').onclick=submit;
+      show();
+      renderScore();
+    }
+
+    // Boot
+    renderPlaceValue();
+  </script>
+</body>
+</html>
