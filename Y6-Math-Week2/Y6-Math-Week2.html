@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Y6 Math Interactive — Steps • Laws • BODMAS • Relay</title>
+  <style>
+    :root{--bg:#0f172a;--panel:#0b1220;--card:#111827;--muted:#9aa4b2;--ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--blue:#3b82f6}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial;background:var(--bg);color:#e5e7eb}
+    header{position:sticky;top:0;background:var(--panel);border-bottom:1px solid #1f2937;padding:16px;z-index:10}
+    h1{margin:0;font-size:20px}
+    .sub{color:var(--muted);font-size:13px}
+    .wrap{max-width:1200px;margin:16px auto;padding:0 16px;display:grid;gap:16px}
+    @media(min-width:1100px){.wrap{grid-template-columns:1.35fr .65fr}}
+    .card{background:var(--card);border:1px solid #1f2937;border-radius:16px;padding:16px}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+    .tab{background:var(--panel);border:1px solid #243042;border-radius:10px;color:#e5e7eb;padding:10px 12px;cursor:pointer}
+    .tab.active{border-color:var(--ok);box-shadow:0 0 0 2px #14532d inset}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .col{display:flex;flex-direction:column;gap:8px}
+    button{background:var(--panel);border:1px solid #253042;border-radius:10px;color:#e5e7eb;padding:10px 12px;cursor:pointer}
+    button.primary{background:linear-gradient(135deg,#16a34a,#22c55e);border:none;color:#06210d}
+    button.warn{background:#1f1300;border:1px solid #6b4e00;color:#ffd166}
+    input,select,textarea{background:var(--panel);border:1px solid #253042;border-radius:10px;color:#e5e7eb;padding:10px}
+    .result{margin-top:10px;padding:10px;border-radius:10px;background:var(--panel);border:1px solid #1f2937}
+    .ok{color:var(--ok)} .err{color:var(--err)} .muted{color:var(--muted)}
+    .grid{display:grid;gap:12px}
+    .slot{border:2px dashed #334155;border-radius:12px;min-height:64px;padding:8px}
+    .chip{padding:10px 12px;border:1px solid #2a3646;border-radius:12px;background:#0b1220;display:inline-flex;gap:8px;align-items:center;cursor:grab;margin:6px}
+    .panel{background:#0b1220;border:1px solid #253042;border-radius:12px;padding:10px}
+    .score{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .numline{position:relative;height:140px;border:1px solid #253042;border-radius:12px;background:#0b1220}
+    .tick{position:absolute;top:56px;width:1px;height:20px;background:#334155}
+    .tick label{position:absolute;top:18px;left:-8px;font-size:12px;color:#9aa4b2}
+    .marker{position:absolute;top:20px;transform:translateX(-50%);font-size:22px}
+    .law{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .law .bin{min-height:110px}
+    .badge{font-size:12px;padding:2px 6px;border:1px solid #2a3646;border-radius:999px}
+    .big{font-size:22px}
+    .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+    .right{color:#22c55e} .wrong{color:#ef4444}
+    .team{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center}
+    .team input{width:80px}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Y6 Math Interactive — Counting Steps & Negatives • Laws • BODMAS • Relay</h1>
+    <div class="sub">Values: fairness/justice (equal steps, right order) • eco order (equal spacing in rows) • amanah (team honesty)</div>
+    <div class="tabs">
+      <button class="tab active" data-tab="steps">1) Steps & Negatives</button>
+      <button class="tab" data-tab="laws">2) Laws of Arithmetic</button>
+      <button class="tab" data-tab="bodmas">3) BODMAS Lab</button>
+      <button class="tab" data-tab="relay">4) Relay Mix</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <section class="card" id="main">
+      <h2 style="margin:0 0 8px">Activity Panel</h2>
+      <div id="view"></div>
+    </section>
+
+    <aside class="card">
+      <h3 style="margin:0 0 8px">Teacher Prompts & Value Links</h3>
+      <div class="panel">
+        <ul class="muted" style="margin-left:18px">
+          <li>Justice = equal steps, fair spacing; Islamic link: be fair & consistent.</li>
+          <li>Eco link: planting rows use equal spacing; no skipping!</li>
+          <li>Only <b>+</b> and <b>×</b> are commutative/associative (not − or ÷).</li>
+          <li>BODMAS order prevents chaos → like rules that keep life fair.</li>
+        </ul>
+      </div>
+      <div class="result score"><div class="panel">Score<br><b id="score">0</b></div><div class="panel">Tries<br><b id="tries">0</b></div><div class="panel">Stars<br><b id="stars">★☆☆</b></div></div>
+    </aside>
+  </div>
+
+  <script>
+    const $=(s,el=document)=>el.querySelector(s); const $$=(s,el=document)=>[...el.querySelectorAll(s)];
+    let SCORE=0, TRIES=0; const add=(n)=>{SCORE+=n; TRIES++; $('#score').textContent=SCORE; $('#tries').textContent=TRIES; const star = SCORE>=24? '★★★': SCORE>=14? '★★☆': SCORE>=7? '★☆☆':'☆☆☆'; $('#stars').textContent=star; };
+    $$('.tab').forEach(t=>t.addEventListener('click',()=>{ $$('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); const id=t.dataset.tab; if(id==='steps') renderSteps(); if(id==='laws') renderLaws(); if(id==='bodmas') renderBodmas(); if(id==='relay') renderRelay(); }));
+
+    // ============== 1) STEPS & NEGATIVES ==============
+    function renderSteps(){
+      const v=$('#view'); v.innerHTML='';
+      const ui=document.createElement('div');
+      ui.innerHTML=`
+        <div class="two">
+          <div>
+            <div class="muted">Number Line Walk — click step buttons to move the marker</div>
+            <div class="numline" id="line"></div>
+            <div class="row" style="margin-top:8px">
+              <button class="primary" data-step="-5">Step −5</button>
+              <button class="primary" data-step="-1">Step −1</button>
+              <button class="primary" data-step="-0.5">Step −0.5</button>
+              <button class="primary" data-step="0.2">Step +0.2</button>
+              <button class="primary" data-step="1">Step +1</button>
+              <button class="primary" data-step="5">Step +5</button>
+              <button id="reset" class="warn">Reset</button>
+            </div>
+            <div class="result" id="outWalk"></div>
+          </div>
+          <div>
+            <div class="muted">Missing Steps — fill the blanks (fair, equal spacing)</div>
+            <div class="panel" id="seq"></div>
+            <div class="row" style="margin-top:8px"><button id="newSeq" class="primary">New Sequence</button> <button id="checkSeq" class="primary">Check</button></div>
+            <div class="result" id="outSeq"></div>
+          </div>
+        </div>
+      `; v.appendChild(ui);
+      // draw number line −20 .. 20 scaled
+      const line=$('#line'); const W=line.clientWidth||520; const min=-20, max=20; line.innerHTML='';
+      function pos(x){ return ( (x-min)/(max-min) ) * (W-20) + 10; }
+      for(let i=min;i<=max;i++){
+        const t=document.createElement('div'); t.className='tick'; t.style.left=pos(i)+'px'; line.appendChild(t); if(i%5===0){ const lab=document.createElement('label'); lab.textContent=i; t.appendChild(lab);} }
+      const marker=document.createElement('div'); marker.className='marker'; marker.textContent='⬤'; line.appendChild(marker);
+      let cur=0; function setMarker(){ marker.style.left=pos(cur)+'px'; $('#outWalk').innerHTML=`Position: <span class="mono">${cur}</span>`; } setMarker();
+      $$('#view [data-step]').forEach(b=>b.onclick=()=>{ const step=parseFloat(b.dataset.step); cur = Math.round((cur+step)*1000)/1000; setMarker();});
+      $('#reset').onclick=()=>{ cur=0; setMarker(); };
+      // missing sequence generator
+      const seqBox=$('#seq'); let seq=[]; function gen(){ seqBox.innerHTML=''; const start=[-10,-5,-2,-1,-0.4,0,1,2,5,10][Math.floor(Math.random()*10)]; const step=[-5,-2,-1,-0.5,0.25,0.2,1,2,4,5][Math.floor(Math.random()*10)]; const len=6; seq=Array.from({length:len},(_,i)=> Math.round((start+i*step)*1000)/1000 ); const blanks=new Set([1,3,5].filter(()=>Math.random()>0.3)); // hide some
+        seq.forEach((val,i)=>{ const cell=document.createElement('span'); cell.className='chip'; if(blanks.has(i)){ cell.innerHTML=`<input class="mono" style="width:90px" data-i="${i}" placeholder="?"/>`; } else { cell.textContent=val; } seqBox.appendChild(cell); });
+        seqBox.dataset.step=step; seqBox.dataset.start=start; }
+      gen();
+      $('#newSeq').onclick=gen;
+      $('#checkSeq').onclick=()=>{ let ok=true, msgs=[]; $$('#seq input').forEach(inp=>{ const i=+inp.dataset.i; const want=seq[i]; const got=parseFloat(inp.value); if(isNaN(got) || Math.abs(got-want)>1e-9){ ok=false; msgs.push(`pos ${i+1} should be ${want}`); } }); if(ok){ add(5); $('#outSeq').innerHTML=`<span class="ok">Correct! Step = <b>${seqBox.dataset.step}</b></span>`; } else { add(0); $('#outSeq').innerHTML='<span class="err">Check:</span> '+msgs.join(' · '); }
+      };
+    }
+
+    // ============== 2) LAWS OF ARITHMETIC ==============
+    function renderLaws(){
+      const v=$('#view'); v.innerHTML='';
+      const laws=[
+        {id:'comm', name:'Commutative (+, × only)', hint:'a+b=b+a; a×b=b×a'},
+        {id:'assoc', name:'Associative (+, × only)', hint:'(a+b)+c=a+(b+c)'},
+        {id:'dist', name:'Distributive (× over +/−)', hint:'a(b+c)=ab+ac'}
+      ];
+      const items=[
+        {t:'12 + 45 = 45 + 12', law:'comm'},
+        {t:'(8 × 2) × 5 = 8 × (2 × 5)', law:'assoc'},
+        {t:'7 × (9 + 1) = 7×9 + 7×1', law:'dist'},
+        {t:'(2 + 3) × 4 = 4 × (3 + 2)', law:'comm'},
+        {t:'(2 + 6) + 4 = 2 + (6 + 4)', law:'assoc'},
+        {t:'4 × (6 − 2) = 4×6 − 4×2', law:'dist'},
+        {t:'3 × 25 = 3×(20+5)', law:'dist'}
+      ];
+      const ui=document.createElement('div');
+      ui.innerHTML=`
+        <div class="row"><button id="regen" class="primary">New Cards</button> <button id="check" class="primary">Check</button> <button id="hint" class="warn">Hints</button></div>
+        <div class="law" style="margin-top:8px">
+          <div>
+            <div class="muted">Expressions (drag to the correct law)</div>
+            <div id="cards" class="panel"></div>
+          </div>
+          <div class="two">
+            ${laws.map(l=>`<div><div class="muted">${l.name}</div><div class="slot bin" id="bin_${l.id}" data-id="${l.id}"></div></div>`).join('')}
+          </div>
+        </div>
+        <div class="result" id="out"></div>
+        <div class="panel muted">Justice link: doing maths in the <b>right order</b> and with <b>fair rules</b> keeps answers truthful — like honesty in trade.</div>
+      `; v.appendChild(ui);
+      function draw(){ const C=$('#cards'); C.innerHTML=''; items.sort(()=>0.5-Math.random()).forEach((x,i)=>{ const el=document.createElement('div'); el.className='chip mono'; el.textContent=x.t; el.draggable=true; el.dataset.law=x.law; el.id='law_'+i; el.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain',el.id)); C.appendChild(el); }); }
+      function hookDrop(el){ el.addEventListener('dragover',e=>{e.preventDefault(); el.style.outline='2px solid var(--ok)'}); el.addEventListener('dragleave',()=>el.style.outline='none'); el.addEventListener('drop',e=>{e.preventDefault(); el.style.outline='none'; const id=e.dataTransfer.getData('text/plain'); const chip=document.getElementById(id); if(chip) el.appendChild(chip); }); }
+      draw(); $$('.bin').forEach(hookDrop);
+      $('#regen').onclick=draw;
+      $('#hint').onclick=()=>{ $('#out').innerHTML = laws.map(l=>`<span class="badge">${l.name.split(' ')[0]}:</span> ${l.hint}`).join(' • '); };
+      $('#check').onclick=()=>{ let ok=true, errs=[]; laws.forEach(l=>{ $$('#bin_'+l.id+' .chip').forEach(c=>{ if(c.dataset.law!==l.id){ ok=false; errs.push('“'+c.textContent+'”'); } }); }); if(ok){ add(7); $('#out').innerHTML='<span class="ok">Spot on! Try creating your own example for one law.</span>'; } else { add(0); $('#out').innerHTML='<span class="err">Misplaced:</span> '+errs.join(' · '); } };
+    }
+
+    // ============== 3) BODMAS LAB ==============
+    function renderBodmas(){
+      const v=$('#view'); v.innerHTML='';
+      const ui=document.createElement('div');
+      ui.innerHTML=`
+        <div class="row"><button id="new" class="primary">New Questions</button> <button id="check" class="primary">Check All</button> <button id="hint" class="warn">BODMAS Hint</button></div>
+        <div class="three" id="qs" style="margin-top:8px"></div>
+        <div class="result" id="out"></div>
+        <div class="panel muted">Eco link: like food chains have order, expressions must follow BODMAS order to keep balance.</div>
+      `; v.appendChild(ui);
+      function randQ(){
+        const bank=[
+          {e:'8 + 2 × 3', a:14, s:'2×3=6; 8+6=14'},
+          {e:'(6 + 4) × 2', a:20, s:'(6+4)=10; 10×2=20'},
+          {e:'10 − 2 × 3', a:4, s:'2×3=6; 10−6=4'},
+          {e:'(12 ÷ 2) + 5^2', a:31, s:'12÷2=6; 5^2=25; 6+25=31'},
+          {e:'(3 + 1)^2', a:16, s:'(3+1)=4; 4^2=16'},
+          {e:'18 ÷ (2 + 1)', a:6, s:'(2+1)=3; 18÷3=6'},
+          {e:'4 × (9 − 2)', a:28, s:'(9−2)=7; 4×7=28'}
+        ];
+        return bank.sort(()=>0.5-Math.random()).slice(0,6);
+      }
+      let cur = randQ();
+      function draw(){ const Q=$('#qs'); Q.innerHTML=''; cur.forEach((q,i)=>{ const card=document.createElement('div'); card.className='panel'; card.innerHTML=`
+            <div class="big mono">${q.e}</div>
+            <div class="row" style="margin-top:6px">
+              <input data-i="${i}" placeholder="Answer" style="width:120px"/>
+              <button class="pill" data-s="${i}">Show steps</button>
+            </div>
+            <div class="muted" id="s_${i}"></div>
+          `; Q.appendChild(card); }); }
+      draw();
+      $('#new').onclick=()=>{ cur=randQ(); draw(); $('#out').textContent=''; };
+      $('#qs').addEventListener('click',e=>{ const i=e.target.dataset.s; if(i!==undefined){ $('#s_'+i).textContent = 'Steps: '+cur[i].s; }});
+      $('#check').onclick=()=>{ let ok=0, n=cur.length, msgs=[]; $$('#qs input').forEach(inp=>{ const i=+inp.dataset.i; const want=cur[i].a; const got=Number(inp.value); if(got===want){ ok++; inp.style.borderColor='#14532d'; } else { inp.style.borderColor='#6b1c1c'; msgs.push(cur[i].e+' → '+want); } }); if(ok===n){ add(8); $('#out').innerHTML='<span class="ok">All correct — excellent order following!</span>'; } else { add(0); $('#out').innerHTML='<span class="err">Check these:</span> '+msgs.join(' · '); }
+      };
+    }
+
+    // ============== 4) RELAY MIX ==============
+    function renderRelay(){
+      const v=$('#view'); v.innerHTML='';
+      const ui=document.createElement('div');
+      ui.innerHTML=`
+        <div class="row"><button id="new" class="primary">New Relay Set</button> <button id="check" class="primary">Check Set</button> <button id="hint" class="warn">Tips</button></div>
+        <div class="grid" id="set" style="grid-template-columns:1fr 1fr;gap:12px;margin-top:8px"></div>
+        <div class="panel col" style="margin-top:8px">
+          <b>Teams (optional)</b>
+          <div class="team"><span>Team A</span><input id="ta" type="number" min="0" value="0"/><button class="pill" id="upa">+1</button></div>
+          <div class="team"><span>Team B</span><input id="tb" type="number" min="0" value="0"/><button class="pill" id="upb">+1</button></div>
+          <div class="tiny muted">Award points for accuracy; honesty is <b>amanah</b>. Speed is secondary.</div>
+        </div>
+        <div class="result" id="out"></div>
+      `; v.appendChild(ui);
+      const stepQs=()=>{ const start=[-8,-6,-5,-2,-1,0,1,2,4,10][Math.floor(Math.random()*10)]; const step=[-3,-2,-1,-0.5,0.25,0.2,1,2,5][Math.floor(Math.random()*9)]; const seq=Array.from({length:5},(_,i)=> +(Math.round((start+i*step)*1000)/1000)); const hide = 1+Math.floor(Math.random()*3); const ans=seq[hide]; seq[hide]='?'; return {type:'steps', q:seq.join(', '), a:String(ans)}; };
+      const lawQs=()=>{
+        const bank=[
+          {e:'12 + 7 = 7 + 12', law:'Commutative'},
+          {e:'(3 × 4) × 5 = 3 × (4 × 5)', law:'Associative'},
+          {e:'5 × (10 + 2) = 50 + 10', law:'Distributive'}
+        ]; const x=bank[Math.floor(Math.random()*bank.length)]; return {type:'law', q:x.e+' — name the law', a:x.law.toLowerCase()};
+      };
+      const bodQs=()=>{ const bank=[ {e:'8 + 2 × 5', a:18}, {e:'(9 − 3)²', a:36}, {e:'20 − 3 × 4', a:8}, {e:'(1 + 2) × 7', a:21} ]; const x=bank[Math.floor(Math.random()*bank.length)]; return {type:'bod', q:x.e, a:String(x.a)}; };
+      let set=[]; function gen(){ set=[]; for(let i=0;i<12;i++){ const pick=Math.random(); set.push(pick<0.34? stepQs() : pick<0.67? lawQs() : bodQs()); } draw(); $('#out').textContent=''; }
+      function draw(){ const S=$('#set'); S.innerHTML=''; set.forEach((q,i)=>{ const card=document.createElement('div'); card.className='panel'; card.innerHTML=`
+          <div><span class="badge">Q${i+1}</span> <span class="mono">${q.type==='bod'? 'Evaluate' : q.type==='law'? 'Identify law' : 'Fill missing step'}</span></div>
+          <div class="big mono" style="margin:4px 0">${q.q}</div>
+          <input data-i="${i}" placeholder="Answer" style="width:160px"/>
+        `; S.appendChild(card); }); }
+      gen();
+      $('#new').onclick=gen;
+      $('#hint').onclick=()=>{ $('#out').innerHTML='Tips: equal steps for sequences; only +/× are comm/assoc; follow BODMAS strictly (brackets → powers → ×/÷ → +/−).'; };
+      $('#check').onclick=()=>{ let ok=0; $$('#set input').forEach(inp=>{ const i=+inp.dataset.i; const want=set[i].a.toLowerCase(); const got=(inp.value||'').toLowerCase(); const good = (set[i].type==='law')? got.includes(want) : Math.abs(Number(got)-Number(want))<1e-9; if(good){ ok++; inp.style.borderColor='#14532d'; } else { inp.style.borderColor='#6b1c1c'; }
+      }); if(ok===set.length){ add(9); $('#out').innerHTML='<span class="ok">Relay set perfect — great teamwork!</span>'; } else { add(0); $('#out').innerHTML='<span class="err">Correct so far:</span> '+ok+' / '+set.length; }
+      };
+      // Team counters
+      const inc=(id)=>{ const el=$(id); el.value = Number(el.value||0) + 1; };
+      $('#upa').onclick=()=>inc('#ta'); $('#upb').onclick=()=>inc('#tb');
+    }
+
+    // boot
+    renderSteps();
+  </script>
+</body>
+</html>
