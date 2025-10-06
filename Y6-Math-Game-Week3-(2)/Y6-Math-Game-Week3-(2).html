@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Y6 — Symmetry & Rotational Order (Max 4)</title>
+<style>
+  :root{--bg:#0f172a;--panel:#0b1220;--card:#111827;--muted:#9aa4b2;--ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--blue:#38bdf8}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial;background:var(--bg);color:#e5e7eb}
+  header{position:sticky;top:0;background:var(--panel);border-bottom:1px solid #1f2937;padding:16px;z-index:10}
+  h1{margin:0;font-size:20px}
+  .sub{color:var(--muted);font-size:13px}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+  .tab{background:var(--panel);border:1px solid #243042;border-radius:10px;color:#e5e7eb;padding:10px 12px;cursor:pointer}
+  .tab.active{border-color:var(--ok);box-shadow:0 0 0 2px #14532d inset}
+  .wrap{max-width:1180px;margin:16px auto;padding:0 16px;display:grid;gap:16px}
+  @media(min-width:1100px){.wrap{grid-template-columns:1.45fr .55fr}}
+  .card{background:var(--card);border:1px solid #1f2937;border-radius:16px;padding:16px}
+  .panel{background:#0b1220;border:1px solid #253042;border-radius:12px;padding:10px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  button{background:var(--panel);border:1px solid #253042;border-radius:10px;color:#e5e7eb;padding:10px 12px;cursor:pointer}
+  button.primary{background:linear-gradient(135deg,#16a34a,#22c55e);border:none;color:#06210d}
+  button.warn{background:#1f1300;border:1px solid #6b4e00;color:#ffd166}
+  input,select{background:var(--panel);border:1px solid #253042;border-radius:10px;color:#e5e7eb;padding:10px}
+  .muted{color:var(--muted)} .ok{color:var(--ok)} .err{color:var(--err)}
+  .result{margin-top:10px;padding:10px;border-radius:10px;background:var(--panel);border:1px solid #1f2937}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+  .stage{height:360px;display:flex;align-items:center;justify-content:center;background:#0b1220;border:1px solid #253042;border-radius:14px}
+  .badge{font-size:12px;padding:2px 6px;border:1px solid #2a3646;border-radius:999px}
+  svg{max-width:100%;height:280px}
+  .line{stroke:#94a3b8;stroke-width:2;stroke-dasharray:6 4}
+</style>
+</head>
+<body>
+  <header>
+    <h1>Y6 Interactive — Geometry of Justice: Symmetry & Balance</h1>
+    <div class="sub">Quadrilaterals • Line symmetry • Rotational symmetry (order ≤ 4) • Eco & Islamic reflections</div>
+    <div class="tabs">
+      <button class="tab active" data-tab="intro">0) 🌟 Lead‑in</button>
+      <button class="tab" data-tab="line">1) 🪞 Line Symmetry Lab</button>
+      <button class="tab" data-tab="rot">2) 🔁 Rotational Symmetry — Spin Challenge</button>
+      <button class="tab" data-tab="quiz">3) 🧩 Rotation Quiz (Order 1/2/4)</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <section class="card" id="main">
+      <h2 style="margin:0 0 8px">Activity Panel</h2>
+      <div id="view"></div>
+    </section>
+
+    <aside class="card">
+      <h3 style="margin:0 0 8px">Teacher Prompts & Integration</h3>
+      <div class="panel">
+        <ul class="muted" style="margin-left:18px">
+          <li><b>Dua</b> for guidance at start/end; link balance & fairness to doing things in the right order.</li>
+          <li><b>Islamic link:</b> Symmetry & rotation reflect <i>Tawheed</i> — unity and perfection in creation.</li>
+          <li><b>Eco link:</b> Rotational patterns in flowers, shells, starfish; harmony in nature.</li>
+          <li>Differentiation: pre‑cut shapes + Yes/No symmetry; challenge with angles 90°, 180°, 270°, 360°.</li>
+        </ul>
+      </div>
+      <div class="result panel">Score: <b id="score">0</b> · Tries: <b id="tries">0</b> · Stars: <b id="stars">☆☆☆</b></div>
+    </aside>
+  </div>
+
+<script>
+const $=(s,el=document)=>el.querySelector(s); const $$=(s,el=document)=>[...el.querySelectorAll(s)];
+let SCORE=0, TRIES=0; function add(n){SCORE+=n; TRIES++; $('#score').textContent=SCORE; $('#tries').textContent=TRIES; $('#stars').textContent= SCORE>=36?'★★★':SCORE>=20?'★★☆':SCORE>=10?'★☆☆':'☆☆☆';}
+$$('.tab').forEach(t=>t.addEventListener('click',()=>{ $$('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); const id=t.dataset.tab; if(id==='intro') renderIntro(); if(id==='line') renderLine(); if(id==='rot') renderRot(); if(id==='quiz') renderQuiz(); }));
+
+// --- Shapes data (canonical orientation at 0°) ---
+const SHAPES={
+  square:{order:4, lines:4, draw:(r)=>`<rect x="${100-r}" y="${100-r}" width="${2*r}" height="${2*r}" fill="none" stroke="#38bdf8" stroke-width="4"/>`},
+  rectangle:{order:2, lines:2, draw:(w=120,h=80)=>`<rect x="${100-w/2}" y="${100-h/2}" width="${w}" height="${h}" fill="none" stroke="#38bdf8" stroke-width="4"/>`},
+  rhombus:{order:2, lines:2, draw:(a=90)=>{const pts=[[100,20],[180,100],[100,180],[20,100]].map(p=>p.join(',')).join(' '); return `<polygon points="${pts}" fill="none" stroke="#38bdf8" stroke-width="4"/>`; }},
+  kite:{order:1, lines:1, draw:()=>`<polygon points="100,20 150,100 100,180 70,100" fill="none" stroke="#38bdf8" stroke-width="4"/>`},
+  parallelogram:{order:2, lines:0, draw:()=>`<polygon points="30,150 80,50 190,50 140,150" fill="none" stroke="#38bdf8" stroke-width="4"/>`}
+};
+
+function renderIntro(){ const v=$('#view'); v.innerHTML=`
+  <div class="stage" style="height:300px">
+    <div>
+      <div class="muted">Lead‑in ideas</div>
+      <ul>
+        <li>Show images (square window, kite, flower, clock face). Ask: <i>What makes these fair & balanced?</i></li>
+        <li>Demo: rotate a square by 90° each time → fits 4 times → <b>order 4</b>.</li>
+        <li>Review: <b>Line</b> vs <b>Rotational</b> symmetry.</li>
+      </ul>
+      <div class="result">Click the tabs above to run the labs and quiz.</div>
+    </div>
+  </div>`; }
+
+// --- 1) LINE SYMMETRY LAB ---
+function renderLine(){
+  const v=$('#view'); v.innerHTML='';
+  const ui=document.createElement('div');
+  ui.innerHTML=`
+  <div class="row" style="margin-bottom:8px">
+    <label>Choose shape</label>
+    <select id="shapePick">
+      <option>square</option><option>rectangle</option><option>rhombus</option><option>kite</option><option>parallelogram</option>
+    </select>
+    <button class="primary" id="toggleV">Toggle Vertical Line</button>
+    <button class="primary" id="toggleH">Toggle Horizontal Line</button>
+    <button class="primary" id="toggleD1">Toggle Diagonal /</button>
+    <button class="primary" id="toggleD2">Toggle Diagonal \</button>
+  </div>
+  <div class="stage"><svg id="svgLine" viewBox="0 0 200 200"></svg></div>
+  <div class="result" id="lineOut"></div>`;
+  v.appendChild(ui);
+
+  const svg=$('#svgLine'); let showV=false, showH=false, showD1=false, showD2=false; function draw(){
+    const name=$('#shapePick').value; const s=SHAPES[name]; svg.innerHTML='';
+    // base shape
+    svg.innerHTML+=s.draw(60);
+    // lines
+    if(showV) svg.innerHTML+=`<line class="line" x1="100" y1="0" x2="100" y2="200"/>`;
+    if(showH) svg.innerHTML+=`<line class="line" x1="0" y1="100" x2="200" y2="100"/>`;
+    if(showD1) svg.innerHTML+=`<line class="line" x1="0" y1="200" x2="200" y2="0"/>`;
+    if(showD2) svg.innerHTML+=`<line class="line" x1="0" y1="0" x2="200" y2="200"/>`;
+    const count=(showV?1:0)+(showH?1:0)+(showD1?1:0)+(showD2?1:0);
+    const verdict = (name==='square' && count===4) || (name==='rectangle' && showV&&showH&&!(showD1||showD2)) || (name==='rhombus' && showD1&&showD2&&!(showV||showH)) || (name==='kite' && showV&&!showH&&!showD1&&!showD2) || (name==='parallelogram' && !(showV||showH||showD1||showD2));
+    $('#lineOut').innerHTML=`Shape: <b>${name}</b> · Lines shown: <b>${count}</b> · ${verdict?'<span class="ok">Correct for this shape.</span>':'<span class="muted">Try to match true symmetry lines for a '+name+'.</span>'}`;
+  }
+  draw();
+  $('#shapePick').onchange=()=>{showV=showH=showD1=showD2=false; draw();};
+  $('#toggleV').onclick=()=>{showV=!showV; draw();};
+  $('#toggleH').onclick=()=>{showH=!showH; draw();};
+  $('#toggleD1').onclick=()=>{showD1=!showD1; draw();};
+  $('#toggleD2').onclick=()=>{showD2=!showD2; draw();};
+}
+
+// --- 2) ROTATIONAL SYMMETRY: SPIN CHALLENGE ---
+function renderRot(){
+  const v=$('#view'); v.innerHTML='';
+  const ui=document.createElement('div');
+  ui.innerHTML=`
+    <div class="row" style="margin-bottom:8px">
+      <label>Choose shape</label>
+      <select id="rotPick"><option>square</option><option>rectangle</option><option>rhombus</option><option>kite</option><option>parallelogram</option></select>
+      <label>Rotate (°)</label>
+      <input id="rotDeg" type="range" min="0" max="360" step="1" value="0"/>
+      <span class="mono" id="degShow">0°</span>
+      <button class="primary" id="mark">Mark a Fit</button>
+      <button class="warn" id="reset">Reset</button>
+    </div>
+    <div class="stage"><svg id="rotSvg" viewBox="0 0 200 200"></svg></div>
+    <div class="result" id="rotOut"></div>
+    <div class="panel muted">Tip: For order ≤ 4, check angles 0°, 90°, 180°, 270°, 360°. A fit means shape matches original outline.</div>
+  `;
+  v.appendChild(ui);
+  const svg=$('#rotSvg'); let angle=0; let hits=new Set();
+  function draw(){ const name=$('#rotPick').value; const s=SHAPES[name]; svg.innerHTML=''; svg.innerHTML+=`<g transform="rotate(${angle},100,100)">${s.draw(60)}</g>`; svg.innerHTML+=`<circle cx="100" cy="100" r="2" fill="#ef4444"/>`;
+    $('#degShow').textContent=angle+'°'; const needed = s.order; const list=[...hits].sort((a,b)=>a-b).join('°, '); $('#rotOut').innerHTML=`Shape: <b>${name}</b> · Marked fits at: <span class="mono">${list||'—'}</span><br> Predicted order: <b>${needed}</b>. Your current unique marks: <b>${hits.size}</b> ${hits.size===needed?'<span class="ok">(Matched)</span>':''}`; }
+  function drawBase(){ angle=Number($('#rotDeg').value); draw(); }
+  $('#rotDeg').oninput=drawBase; $('#rotPick').onchange=()=>{hits.clear(); $('#rotDeg').value=0; drawBase();};
+  $('#mark').onclick=()=>{ const name=$('#rotPick').value; const s=SHAPES[name]; // Snap tolerance 5° around theoretical hits
+    const candidates = s.order===4?[0,90,180,270,360]: s.order===2?[0,180,360]: [0,360];
+    let snap=null; for(const c of candidates){ if(Math.abs((angle%360)-c)<=5) { snap=c; break; } }
+    if(snap===null){ $('#rotOut').innerHTML+='<div class="err">Not a fit. Try angles '+candidates.join('°, ')+'°.</div>'; add(0); }
+    else { if(!hits.has(snap)){ hits.add(snap); add(3);} draw(); }
+  };
+  $('#reset').onclick=()=>{ hits.clear(); $('#rotDeg').value=0; drawBase(); };
+  drawBase();
+}
+
+// --- 3) QUIZ (order 1/2/4) ---
+function renderQuiz(){
+  const v=$('#view'); v.innerHTML='';
+  const ui=document.createElement('div');
+  ui.innerHTML=`
+    <div class="row"><button class="primary" id="newQ">New 8‑Q Set</button> <button class="primary" id="checkQ">Check</button> <button class="warn" id="hint">Hints</button></div>
+    <div id="qs" class="panel" style="margin-top:8px"></div>
+    <div id="out" class="result"></div>
+  `; v.appendChild(ui);
+  const bank=['square','rectangle','rhombus','kite','parallelogram'];
+  function makeQ(){ const s=bank[Math.floor(Math.random()*bank.length)]; const rot=[0,90,180,270][Math.floor(Math.random()*4)]; const order=SHAPES[s].order; return {shape:s, rot, order}; }
+  let set=[]; function gen(){ set=Array.from({length:8},makeQ); draw(); $('#out').textContent=''; }
+  function draw(){ const host=$('#qs'); host.innerHTML=''; set.forEach((q,i)=>{ const idSel='sel_'+i; const idSvg='svg_'+i; host.innerHTML+=`<div class="row" style="justify-content:space-between;border-bottom:1px dashed #263246;padding:8px 0">
+    <div><div class="badge">Q${i+1}</div> Rotate the <b>${q.shape}</b> by <b>${q.rot}°</b>. What is its <b>rotational order</b>? (1, 2 or 4)</div>
+    <select id="${idSel}"><option value="">?</option><option>1</option><option>2</option><option>4</option></select>
+  </div>
+  <div class="stage" style="height:220px;margin:6px 0 12px"><svg id="${idSvg}" viewBox="0 0 200 200"></svg></div>`; const svg=$('#'+idSvg); svg.innerHTML=`<g transform="rotate(${q.rot},100,100)">${SHAPES[q.shape].draw(60)}</g>`; }); }
+  gen();
+  $('#newQ').onclick=gen;
+  $('#hint').onclick=()=>$('#out').innerHTML='Hints: square → 4 · rectangle/rhombus/parallelogram → 2 · kite/irregular → 1';
+  $('#checkQ').onclick=()=>{ let ok=0; set.forEach((q,i)=>{ const choice=$('#sel_'+i).value; if(String(q.order)===choice) ok++; }); if(ok===set.length){ add(10); $('#out').innerHTML='<span class="ok">Excellent — full marks!</span>'; } else { add(0); $('#out').innerHTML='<span class="err">Correct:</span> '+ok+' / '+set.length+' · Aim for 6+/8. Review which shapes have order 1 vs 2 vs 4.'; }
+  };
+}
+
+// boot
+renderIntro();
+</script>
+</body>
+</html>
