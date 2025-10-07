@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Y6 Science — Breathing, Puberty & Reproduction (Interactive)</title>
+<style>
+  :root{--bg:#0f172a;--panel:#0b1220;--card:#111827;--ink:#e5e7eb;--muted:#9aa4b2;--ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--blue:#60a5fa;--purple:#a78bfa}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+  header{position:sticky;top:0;z-index:10;background:var(--panel);border-bottom:1px solid #1f2937;padding:14px 16px}
+  h1{margin:0;font-size:20px}
+  .sub{font-size:13px;color:var(--muted)}
+  .wrap{max-width:1200px;margin:16px auto;padding:0 16px;display:grid;gap:16px}
+  @media(min-width:1100px){.wrap{grid-template-columns:1.5fr .5fr}}
+  .card{background:var(--card);border:1px solid #1f2937;border-radius:16px;padding:16px}
+  .panel{background:var(--panel);border:1px solid #243042;border-radius:12px;padding:12px}
+  .tabs{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .tab{background:var(--panel);border:1px solid #243042;border-radius:12px;color:var(--ink);padding:8px 12px;cursor:pointer}
+  .tab.active{border-color:var(--ok);box-shadow:0 0 0 2px #14532d inset}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .stage{min-height:380px;display:flex;align-items:center;justify-content:center;background:#0b1220;border:1px solid #253042;border-radius:14px;padding:12px}
+  button{background:var(--panel);border:1px solid #253042;border-radius:10px;color:var(--ink);padding:10px 12px;cursor:pointer}
+  button.primary{background:linear-gradient(135deg,#16a34a,#22c55e);border:none;color:#06210d}
+  button.warn{background:#1f1300;border:1px solid #6b4e00;color:#ffd166}
+  input,select{background:var(--panel);border:1px solid #253042;border-radius:10px;color:var(--ink);padding:8px 10px}
+  .grid{display:grid;gap:10px}
+  .grid-2{grid-template-columns:repeat(2,1fr)}
+  .grid-3{grid-template-columns:repeat(3,1fr)}
+  .tile{background:#0f1a2a;border:1px solid #263246;border-radius:12px;padding:10px;text-align:center;cursor:grab;user-select:none}
+  .tile[aria-grabbed="true"]{outline:3px solid #22c55e}
+  .drop{min-height:96px;border:2px dashed #334155;border-radius:12px;padding:8px;display:flex;gap:8px;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border:1px solid #2a3646;border-radius:999px;background:#0b1220;margin:6px;cursor:grab}
+  .badge{font-size:12px;padding:2px 6px;border:1px solid #2a3646;border-radius:999px}
+  .muted{color:var(--muted)} .ok{color:var(--ok)} .err{color:var(--err)}
+  .result{margin-top:10px;padding:10px;border-radius:10px;background:var(--panel);border:1px solid #1f2937}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+  .center{text-align:center}
+</style>
+</head>
+<body>
+  <header>
+    <h1>Y6 Science — Respiratory System, Puberty & Reproductive System</h1>
+    <div class="sub">Interactive activities • Differentiation • Islamic & Eco links • Respectful, scientific language</div>
+    <div class="tabs">
+      <button class="tab active" data-tab="lead">0) 🌬️ Lead‑in</button>
+      <button class="tab" data-tab="label">1) 🫁 Label the Respiratory System</button>
+      <button class="tab" data-tab="sim">2) 🫁➡️⬇️ Breathing Simulator</button>
+      <button class="tab" data-tab="puberty">3) 🧭 Puberty Changes Sort</button>
+      <button class="tab" data-tab="repro">4) 🧬 Reproductive System Match</button>
+      <button class="tab" data-tab="quiz">5) 🧩 Quick Quiz</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <section class="card" id="main">
+      <h2 style="margin:0 0 8px">Activity Panel</h2>
+      <div id="view"></div>
+    </section>
+    <aside class="card">
+      <h3 style="margin:0 0 8px">Teacher Prompts & Values</h3>
+      <div class="panel">
+        <ul class="muted" style="margin-left:18px">
+          <li>Begin with salam + short <b>dua</b>. Lead‑in Qs: Which organs help you breathe?</li>
+          <li>Faith link: Breathing is a mercy from Allah (amanah to protect health & air).</li>
+          <li>Eco link: Clean air matters — pollution harms lungs; be air‑care stewards.</li>
+          <li>Respectful biology: Use scientific terms; diagrams are schematic (non‑graphic).</li>
+          <li>Differentiation: Use <em>Less‑able Mode</em> toggles; model first → release.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <div><span class="badge">Progress</span></div>
+        <div class="result">Score: <b id="score">0</b> · Tries: <b id="tries">0</b> · Stars: <b id="stars">☆☆☆</b></div>
+      </div>
+    </aside>
+  </div>
+
+<script>
+const $=(s,el=document)=>el.querySelector(s); const $$=(s,el=document)=>[...el.querySelectorAll(s)];
+let SCORE=0, TRIES=0; function add(n){SCORE+=n; TRIES++; $('#score').textContent=SCORE; $('#tries').textContent=TRIES; $('#stars').textContent= SCORE>=42?'★★★':SCORE>=24?'★★☆':SCORE>=12?'★☆☆':'☆☆☆';}
+$$('.tab').forEach(t=>t.addEventListener('click',()=>{ $$('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); const id=t.dataset.tab; ({lead:renderLead,label:renderLabel,sim:renderSim,puberty:renderPuberty,repro:renderRepro,quiz:renderQuiz}[id])(); }));
+
+/****************** 0) Lead‑in ******************/
+function renderLead(){ const v=$('#view'); v.innerHTML=`
+  <div class="stage">
+    <div class="grid" style="gap:12px;max-width:820px">
+      <div class="panel">
+        <div class="badge">Prompt</div>
+        <p>Take a deep breath… and out. Which parts helped you? <b>Lungs</b>, <b>windpipe (trachea)</b>, <b>diaphragm</b>, and the <b>chest cavity</b> working together.</p>
+        <p class="muted">Islamic link: Every breath is a gift from Allah; caring for our lungs and the air is part of our <b>amanah</b>.</p>
+      </div>
+      <div class="grid grid-3">
+        <div class="tile">🫁 Lungs</div>
+        <div class="tile">🧩 Diaphragm</div>
+        <div class="tile">🫗 Air in/out</div>
+      </div>
+      <div class="result tiny">Use the tabs to proceed left → right.</div>
+    </div>
+  </div>`; }
+
+/****************** 1) Label the Respiratory System ******************/
+function renderLabel(){ const v=$('#view'); v.innerHTML=`
+  <div class="row"><button class="primary" id="new">New Diagram</button> <button class="primary" id="check">Check</button> <button class="warn" id="easy">Less‑able Mode</button></div>
+  <div class="panel" style="margin-top:8px">
+    <div class="badge">Drag labels to the correct targets</div>
+    <div class="row" style="align-items:flex-start;gap:16px">
+      <div class="stage" style="flex:1"><canvas id="resp" width="520" height="320" style="max-width:100%;border-radius:12px"></canvas></div>
+      <div style="flex:1">
+        <div class="badge">Labels</div>
+        <div id="pool" class="drop"></div>
+        <div class="result tiny">Targets: <span class="mono">lungs (L/R), trachea, diaphragm</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="result" id="out"></div>`;
+  let easy=false;
+  const ctx=$('#resp').getContext('2d');
+  const targets=[
+    {id:'trachea',x:260,y:90,w:50,h:120},
+    {id:'lungL',x:150,y:110,w:100,h:130},
+    {id:'lungR',x:270,y:110,w:100,h:130},
+    {id:'diaphragm',x:140,y:250,w:240,h:30}
+  ];
+  function draw(){ const c=$('#resp'); ctx.clearRect(0,0,c.width,c.height);
+    // chest outline
+    ctx.fillStyle='#0b1930'; ctx.fillRect(0,0,c.width,c.height);
+    ctx.strokeStyle='#334155'; ctx.lineWidth=2; ctx.strokeRect(20,20,480,280);
+    // trachea
+    ctx.fillStyle='#64748b'; ctx.fillRect(260,60,18,80);
+    // lungs
+    ctx.fillStyle='#ef4444'; roundRect(140,100,110,150,18,true); // left
+    roundRect(270,100,110,150,18,true); // right
+    // diaphragm
+    ctx.fillStyle='#22c55e'; roundRect(120,250,280,32,16,true);
+    // labels overlay
+    ctx.fillStyle='#9aa4b2'; ctx.font='13px system-ui'; ctx.fillText('Chest cavity (schematic)',18,16);
+  }
+  function roundRect(x,y,w,h,r,fill){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); if(fill) ctx.fill(); else ctx.stroke(); }
+  function chip(t){ const d=document.createElement('div'); d.className='chip'; d.textContent=t.label; d.id=t.id; d.draggable=true; d.dataset.target=t.id; d.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain',d.id)); return d; }
+  function drawPool(){ const pool=$('#pool'); pool.innerHTML=''; const labels=[
+      {id:'trachea',label:'Trachea (windpipe)'},
+      {id:'lungL',label:'Left lung'},
+      {id:'lungR',label:'Right lung'},
+      {id:'diaphragm',label:'Diaphragm'}
+  ].sort(()=>Math.random()-0.5); labels.forEach(l=>pool.appendChild(chip(l))); }
+  function hit(id){ const t=targets.find(x=>x.id===id); return t; }
+  $('#resp').addEventListener('dragover',e=>e.preventDefault());
+  $('#resp').addEventListener('drop',e=>{ e.preventDefault(); const id=e.dataTransfer.getData('text/plain'); const rect=e.target.getBoundingClientRect(); const x=e.clientX-rect.left, y=e.clientY-rect.top; const t=targets.find(T=>x>=T.x && x<=T.x+T.w && y>=T.y && y<=T.y+T.h); if(t){ const el=document.getElementById(id); el.dataset.placed=t.id; if(easy){ el.style.boxShadow='0 0 0 2px '+(el.dataset.target===t.id?'#14532d':'#7f1d1d')+' inset'; } $('#pool').appendChild(el); }});
+  function init(){ draw(); drawPool(); $('#out').textContent=''; }
+  init();
+  $('#new').onclick=init; $('#easy').onclick=()=>{ easy=!easy; $('#easy').textContent=easy?'Standard Mode':'Less‑able Mode'; };
+  $('#check').onclick=()=>{ const needed=['trachea','lungL','lungR','diaphragm']; let ok=0; needed.forEach(n=>{ const el=$('#'+n); if(el && el.dataset.placed===n) ok++; }); if(ok===needed.length){ add(8); $('#out').innerHTML='<span class="ok">Great job — you labeled the main parts correctly!</span>'; } else { add(0); $('#out').innerHTML='<span class="err">Some labels are missing or misplaced. Try dropping each on its matching region.</span>'; } };
+}
+
+/****************** 2) Breathing Simulator (canvas) ******************/
+function renderSim(){ const v=$('#view'); v.innerHTML=`
+  <div class="row"><button class="primary" id="start">Start</button> <button class="warn" id="pause">Pause</button> <label>Speed <span id="spdVal" class="mono">1x</span></label><input id="spd" type="range" min="1" max="4" value="1" step="1" style="width:220px"></div>
+  <div class="stage"><canvas id="cv" width="720" height="320" style="max-width:100%;background:#0b1220;border:1px solid #253042;border-radius:12px"></canvas></div>
+  <div class="panel tiny">Model idea: Diaphragm contracts ⬇️ → chest volume ↑ → air in. Diaphragm relaxes ⬆️ → chest volume ↓ → air out.</div>
+  <div class="result" id="simOut"></div>`;
+  const c=$('#cv'), ctx=c.getContext('2d'); let t=0, speed=1, running=false, raf=null;
+  function drawScene(phase){ ctx.clearRect(0,0,c.width,c.height);
+    // chest box
+    ctx.strokeStyle='#334155'; ctx.lineWidth=3; ctx.strokeRect(160,30,400,260);
+    // trachea
+    ctx.fillStyle='#64748b'; ctx.fillRect(350,10,20,40);
+    // lungs (scale with phase)
+    const inflate=0.85+0.15*Math.sin(phase);
+    drawLung(240,90,110,120,inflate); // left
+    drawLung(370,90,110,120,inflate); // right
+    // diaphragm (arc moves down when inhale)
+    const dy=24*Math.sin(phase);
+    ctx.fillStyle='#22c55e'; rounded(180,230+dy,360,40,18,true);
+    // arrows for air
+    const flow=Math.sin(phase)>0?1:-1; drawAir(flow);
+    // text
+    ctx.fillStyle='#9aa4b2'; ctx.font='14px system-ui'; ctx.fillText(flow>0?'Inhale: diaphragm contracts ⬇️, lungs inflate':'Exhale: diaphragm relaxes ⬆️, lungs deflate', 16, 306);
+  }
+  function drawLung(x,y,w,h,k){ ctx.save(); ctx.translate(x,y); ctx.scale(k,k); ctx.fillStyle='#ef4444'; rounded(0,0,w,h,24,true); ctx.restore(); }
+  function rounded(x,y,w,h,r,fill){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); if(fill) ctx.fill(); else ctx.stroke(); }
+  function drawAir(dir){ ctx.save(); ctx.translate(360,50); ctx.fillStyle= dir>0 ? '#60a5fa' : '#f59e0b';
+    for(let i=0;i<6;i++){ const off=i*26 + (dir>0?(t%26):(-(t%26))); triangle(0, i*24, 10*dir, 6); }
+    ctx.restore(); }
+  function triangle(x,y,w,h){ ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+w,y-h); ctx.lineTo(x+w,y+h); ctx.closePath(); ctx.fill(); }
+  function frame(){ if(!running) return; t+=1*speed; drawScene(t/18); raf=requestAnimationFrame(frame); }
+  drawScene(0);
+  $('#spd').oninput=(e)=>{ speed=parseInt(e.target.value,10); $('#spdVal').textContent=speed+'x'; };
+  $('#start').onclick=()=>{ running=true; if(raf) cancelAnimationFrame(raf); raf=requestAnimationFrame(frame); add(2); };
+  $('#pause').onclick=()=>{ running=false; if(raf) cancelAnimationFrame(raf); };
+}
+
+/****************** 3) Puberty Changes Sort ******************/
+function renderPuberty(){ const v=$('#view'); v.innerHTML=`
+  <div class="row"><button class="primary" id="new">New Set</button> <button class="primary" id="check">Check</button> <button class="warn" id="easy">Less‑able Mode</button></div>
+  <div class="panel" style="margin-top:8px">
+    <div class="badge">Sort changes into columns (respectful, scientific)</div>
+    <div class="row" style="align-items:flex-start;gap:12px">
+      <div style="flex:1"><div class="badge">Cards</div><div id="pool" class="drop"></div></div>
+      <div style="flex:1"><div class="badge">Common to all</div><div id="col_all" class="drop"></div></div>
+      <div style="flex:1"><div class="badge">Often in boys</div><div id="col_boy" class="drop"></div></div>
+      <div style="flex:1"><div class="badge">Often in girls</div><div id="col_girl" class="drop"></div></div>
+    </div>
+  </div>
+  <div class="result tiny">Faith link: Growth is by Allah’s wisdom. Respect privacy, kindness & amanah.</div>
+  <div class="result" id="out"></div>`;
+  let easy=false;
+  const bank=[
+    {t:'Grow taller, body becomes stronger', to:'col_all'},
+    {t:'Skin becomes oily / acne may appear', to:'col_all'},
+    {t:'Body odour increases — need better hygiene', to:'col_all'},
+    {t:'Voice deepens', to:'col_boy'},
+    {t:'Facial hair develops', to:'col_boy'},
+    {t:'Shoulders broaden', to:'col_boy'},
+    {t:'Wider hips develop', to:'col_girl'},
+    {t:'Breast development', to:'col_girl'},
+    {t:'Monthly cycle begins', to:'col_girl'}
+  ];
+  function chip(o){ const d=document.createElement('div'); d.className='chip'; d.textContent=o.t; d.id='p_'+Math.random().toString(36).slice(2,7); d.draggable=true; d.dataset.to=o.to; d.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain',d.id)); return d; }
+  function hook(id){ const dz=$('#'+id); dz.addEventListener('dragover',e=>{e.preventDefault(); dz.style.outline='2px solid var(--ok)'}); dz.addEventListener('dragleave',()=>dz.style.outline='none'); dz.addEventListener('drop',e=>{e.preventDefault(); dz.style.outline='none'; const id=e.dataTransfer.getData('text/plain'); const el=document.getElementById(id); if(el){ dz.appendChild(el); if(easy){ dz.style.boxShadow='0 0 0 2px '+(el.dataset.to===dz.id?'#14532d':'#7f1d1d')+' inset'; }}}); }
+  function draw(){ const pool=$('#pool'); pool.innerHTML=''; ['col_all','col_boy','col_girl'].forEach(id=>{ $('#'+id).innerHTML=''; $('#'+id).style.boxShadow='none';}); [...bank].sort(()=>Math.random()-0.5).forEach(o=>pool.appendChild(chip(o))); }
+  ['pool','col_all','col_boy','col_girl'].forEach(hook); draw();
+  $('#new').onclick=draw; $('#easy').onclick=()=>{ easy=!easy; $('#easy').textContent=easy?'Standard Mode':'Less‑able Mode'; draw(); };
+  $('#check').onclick=()=>{ let ok=true; ['col_all','col_boy','col_girl'].forEach(id=>{ $$('#'+id+' .chip').forEach(c=>{ if(c.dataset.to!==id) ok=false; });}); if(ok){ add(8); $('#out').innerHTML='<span class="ok">Well done — thoughtful sorting and respectful language.</span>'; } else { add(0); $('#out').innerHTML='<span class="err">Some cards may be in the wrong column. Recheck differences vs common changes.</span>'; } };
+}
+
+/****************** 4) Reproductive System Match (respectful, schematic) ******************/
+function renderRepro(){ const v=$('#view'); v.innerHTML=`
+  <div class="row"><button class="primary" id="new">New Cards</button> <button class="primary" id="check">Check</button> <button class="warn" id="easy">Less‑able Mode</button></div>
+  <div class="panel" style="margin-top:8px">
+    <div class="badge">Match part → function (male & female). Diagrams are schematic text cards (non‑graphic).</div>
+    <div class="row" style="align-items:flex-start;gap:12px">
+      <div style="flex:1"><div class="badge">Parts</div><div id="pool" class="drop"></div></div>
+      <div style="flex:1"><div class="badge">Male — function</div><div id="m_func" class="drop"></div></div>
+      <div style="flex:1"><div class="badge">Female — function</div><div id="f_func" class="drop"></div></div>
+    </div>
+  </div>
+  <div class="result tiny">Purpose: understand roles of parts using correct terms. Be respectful and scientific.</div>
+  <div class="result" id="out"></div>`;
+  let easy=false;
+  const parts=[
+    {t:'Testes', to:'m_func', f:'Make male sex cells (sperm)'},
+    {t:'Sperm duct', to:'m_func', f:'Carry sperm towards the penis'},
+    {t:'Penis', to:'m_func', f:'Where sperm leave the body'},
+    {t:'Ovaries', to:'f_func', f:'Make female sex cells (eggs/ova)'},
+    {t:'Oviduct (Fallopian tube)', to:'f_func', f:'Where fertilisation takes place'},
+    {t:'Uterus', to:'f_func', f:'Where the baby develops'},
+    {t:'Vagina', to:'f_func', f:'Entry where sperm are received'}
+  ];
+  function chip(o){ const d=document.createElement('div'); d.className='chip'; d.textContent=o.t; d.id='r_'+Math.random().toString(36).slice(2,7); d.draggable=true; d.dataset.to=o.to; d.dataset.f=o.f; d.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain',d.id)); return d; }
+  function hook(id){ const dz=$('#'+id); dz.addEventListener('dragover',e=>{e.preventDefault(); dz.style.outline='2px solid var(--ok)'}); dz.addEventListener('dragleave',()=>dz.style.outline='none'); dz.addEventListener('drop',e=>{e.preventDefault(); dz.style.outline='none'; const id=e.dataTransfer.getData('text/plain'); const el=document.getElementById(id); if(el){ dz.appendChild(el); if(easy){ dz.style.boxShadow='0 0 0 2px '+(el.dataset.to===dz.id?'#14532d':'#7f1d1d')+' inset'; }}}); }
+  function draw(){ const pool=$('#pool'); pool.innerHTML=''; ['m_func','f_func'].forEach(id=>{ $('#'+id).innerHTML=''; $('#'+id).style.boxShadow='none';}); [...parts].sort(()=>Math.random()-0.5).forEach(o=>pool.appendChild(chip(o))); }
+  ['pool','m_func','f_func'].forEach(hook); draw();
+  $('#new').onclick=draw; $('#easy').onclick=()=>{ easy=!easy; $('#easy').textContent=easy?'Standard Mode':'Less‑able Mode'; draw(); };
+  $('#check').onclick=()=>{ let ok=true; ['m_func','f_func'].forEach(id=>{ $$('#'+id+' .chip').forEach(c=>{ if(c.dataset.to!==id) ok=false; });}); if(ok){ add(8); // show functions as feedback summary
+      const mlist=$$('#m_func .chip').map(c=>'• '+c.textContent+' → '+c.dataset.f).join('<br>');
+      const flist=$$('#f_func .chip').map(c=>'• '+c.textContent+' → '+c.dataset.f).join('<br>');
+      $('#out').innerHTML='<span class="ok">Matched: </span><div class="panel" style="margin-top:8px"><b>Male</b><br>'+mlist+'</div><div class="panel" style="margin-top:8px"><b>Female</b><br>'+flist+'</div>';
+    } else { add(0); $('#out').innerHTML='<span class="err">Some parts are in the wrong column. Re‑check definitions.</span>'; } };
+}
+
+/****************** 5) Quick Quiz ******************/
+function renderQuiz(){ const v=$('#view'); v.innerHTML=`
+  <div class="row"><button class="primary" id="newQ">New 10‑Q Set</button> <button class="primary" id="checkQ">Check</button> <button class="warn" id="hint">Hints</button></div>
+  <div id="qs" style="margin-top:8px"></div>
+  <div id="out" class="result"></div>`;
+  const bank=[
+    {t:'The diaphragm moves down when you inhale.', a:'T'},
+    {t:'Air leaves the lungs when chest volume increases.', a:'F'},
+    {t:'The trachea is another name for the windpipe.', a:'T'},
+    {t:'Puberty means the body does not change much.', a:'F'},
+    {t:'Voice deepening is common in boys during puberty.', a:'T'},
+    {t:'Fertilisation happens in the uterus.', a:'F'},
+    {t:'Ovaries make female sex cells (eggs).', a:'T'},
+    {t:'Testes make sperm.', a:'T'},
+    {t:'Protecting clean air helps our respiratory health.', a:'T'},
+    {t:'Being respectful when learning about bodies is important.', a:'T'}
+  ];
+  let set=[]; function gen(){ set=[...bank].sort(()=>Math.random()-0.5).slice(0,10); draw(); $('#out').textContent=''; }
+  function draw(){ const host=$('#qs'); host.innerHTML=''; set.forEach((q,i)=>{ host.innerHTML+=`<div class=panel style="margin-bottom:8px"><div><span class=badge>Q${i+1}</span> ${q.t}</div>
+    <div class=row><label><input type=radio name=q${i} value=T> True</label> <label><input type=radio name=q${i} value=F> False</label></div></div>`; }); }
+  gen();
+  $('#newQ').onclick=gen; $('#hint').onclick=()=>$('#out').innerHTML='Hints: Inhale → diaphragm down, lungs inflate. Puberty brings growth & changes. Fertilisation occurs in the oviduct.';
+  $('#checkQ').onclick=()=>{ let ok=0; set.forEach((q,i)=>{ const pick=($$("input[name='q"+i+"']:checked")[0]||{}).value; if(pick===q.a) ok++;}); if(ok===set.length){ add(10); $('#out').innerHTML='<span class="ok">Excellent — full marks!</span>'; } else { add(0); $('#out').innerHTML='<span class="err">Correct:</span> '+ok+' / '+set.length+' — Review simulator, puberty sort & matches.'; }
+  };
+}
+
+// boot
+renderLead();
+</script>
+</body>
+</html>
