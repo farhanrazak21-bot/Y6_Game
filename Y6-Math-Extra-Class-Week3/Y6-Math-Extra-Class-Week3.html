@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Y6 Extra Class — Sequences • BODMAS • Quadrilaterals • Circles</title>
+<style>
+  :root{--bg:#0f172a;--panel:#0b1220;--card:#111827;--ink:#e5e7eb;--muted:#a1a9b8;--ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--blue:#60a5fa}
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+  header{position:sticky;top:0;z-index:10;background:linear-gradient(180deg,#0b1220,#0b1220bb);backdrop-filter:blur(6px);border-bottom:1px solid #1f2937;padding:14px 16px}
+  h1{margin:0;font-size:20px}
+  .sub{font-size:13px;color:var(--muted)}
+  .wrap{max-width:1100px;margin:16px auto;padding:0 16px;display:grid;gap:16px}
+  .card{background:var(--card);border:1px solid #213047;border-radius:16px;padding:16px}
+  .tabs{display:flex;flex-wrap:wrap;gap:8px}
+  .tab{background:var(--panel);border:1px solid #213047;border-radius:12px;color:var(--ink);padding:8px 12px;cursor:pointer}
+  .tab.active{border-color:var(--ok);box-shadow:0 0 0 2px #14532d inset}
+  .stage{background:var(--panel);border:1px solid #213047;border-radius:14px;padding:14px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  input[type="number"], input[type="text"], select{background:#0d1524;border:1px solid #263247;border-radius:10px;color:var(--ink);padding:8px 10px}
+  button{background:#0d1524;border:1px solid #263247;border-radius:10px;color:var(--ink);padding:10px 12px;cursor:pointer}
+  button.primary{background:linear-gradient(135deg,#16a34a,#22c55e);border:none;color:#052013}
+  .q{padding:10px;border:1px solid #223047;border-radius:10px;margin:10px 0}
+  .q h4{margin:.2rem 0 .6rem 0}
+  .muted{color:var(--muted)}
+  .ok{color:var(--ok)} .err{color:var(--err)}
+  .result{margin-top:10px;padding:10px;border-radius:10px;background:#0d1524;border:1px solid #223047}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+  .grid{display:grid;gap:10px}
+  .grid-2{grid-template-columns:repeat(2,1fr)}
+  .opt{display:flex;gap:8px;align-items:center}
+  .badge{display:inline-block;font-size:12px;border:1px solid #243146;border-radius:999px;padding:2px 8px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Y6 Extra Class — Interactive Practice</h1>
+  <div class="sub">Chapter 2: Count on/back • Order of operations • Brackets · Chapter 3: Quadrilaterals & Circles</div>
+  <div class="tabs" id="tabs"></div>
+</header>
+<div class="wrap">
+  <section class="card">
+    <div class="row" style="justify-content:space-between">
+      <div>Score: <b id="score">0</b> · Tries: <b id="tries">0</b> · Stars: <b id="stars">☆☆☆</b></div>
+      <div class="row"><button id="regen" class="primary">Regenerate All</button> <button id="easy">Less‑able Mode</button></div>
+    </div>
+  </section>
+  <section class="card">
+    <div id="view"></div>
+  </section>
+  <section class="card">
+    <h3 style="margin:0 0 8px">Teacher Notes</h3>
+    <div class="stage">
+      <ul class="muted">
+        <li>Set 1: Sequences (count on/back, step size including decimals, negatives). Accepts fractional steps like 0.25.</li>
+        <li>Set 2: BODMAS — students compare bracketed vs un‑bracketed expressions.</li>
+        <li>Set 3: Quadrilaterals — properties; MCQ style.</li>
+        <li>Set 4: Circles — radius/diameter conversions.</li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+<script>
+const $=(s,el=document)=>el.querySelector(s); const $$=(s,el=document)=>[...el.querySelectorAll(s)];
+let SCORE=0, TRIES=0, EASY=false; function addScore(n){SCORE+=n; TRIES++; $('#score').textContent=SCORE; $('#tries').textContent=TRIES; $('#stars').textContent = SCORE>=60?'★★★':SCORE>=35?'★★☆':SCORE>=18?'★☆☆':'☆☆☆';}
+
+const sets=[
+  { id:'set1', name:'Set 1 — Count On / Back', render:renderSet1 },
+  { id:'set2', name:'Set 2 — Order & Brackets', render:renderSet2 },
+  { id:'set3', name:'Set 3 — Quadrilaterals', render:renderSet3 },
+  { id:'set4', name:'Set 4 — Circles', render:renderSet4 }
+];
+
+function initTabs(){ const tabs=$('#tabs'); tabs.innerHTML=''; sets.forEach((s,i)=>{ const b=document.createElement('button'); b.className='tab'+(i===0?' active':''); b.textContent=s.name; b.dataset.id=s.id; b.onclick=()=>{ $$('.tab').forEach(t=>t.classList.remove('active')); b.classList.add('active'); s.render(); }; tabs.appendChild(b); }); }
+
+// Utility: decimal round
+function round(n,dp=4){ return Number.parseFloat(n.toFixed(dp)); }
+
+/**************** Set 1 ****************/
+function renderSet1(){ const host=$('#view');
+  // Q1: continue sequence with fixed step (two blanks)
+  const steps=[0.5, 0.25, 1, 1.5, 2, -0.5, -1];
+  const step=steps[Math.floor(Math.random()*steps.length)];
+  const start=round((Math.random()*6-2)*2)/2; // -2..4, halves
+  const seq=[start, start+step, start+2*step, start+3*step, start+4*step];
+  const a1=[seq[0], seq[1], seq[2], '____', '____'];
+
+  // Q2: count back in qtr from integer 0..4
+  const start2 = Math.floor(Math.random()*3)+1; // 1..3 for neatness
+  const q2=[start2, '____','____','____'];
+  const q2Ans=[start2, start2-0.25, start2-0.5, start2-0.75];
+
+  // Q3: counting on/back with stated step
+  const stepA = [2,3,4,5][Math.floor(Math.random()*4)];
+  const stepB = [2,3,4,5][Math.floor(Math.random()*4)];
+  const q3aStart = -8; // like sample pattern
+  const q3a=[-8, -8+stepA, -8+2*stepA, '____','____'];
+  const q3aAns=[-8, -8+stepA, -8+2*stepA, -8+3*stepA, -8+4*stepA];
+  const q3bStart = 6; const q3b=[6, 6-stepB, 6-2*stepB, '____','____'];
+  const q3bAns=[6, 6-stepB, 6-2*stepB, 6-3*stepB, 6-4*stepB];
+
+  // Q4: reasoning
+  const reasonStart = -2; const reasonBack=6; const reasonClaim=4; const reasonAns = (reasonStart - reasonBack === reasonClaim);
+
+  host.innerHTML=`
+    <div class="stage">
+      <div class="row" style="justify-content:space-between"><h2 style="margin:0">Set 1 — Count On & Count Back</h2><div class="badge">EASY: ${EASY?'ON':'OFF'}</div></div>
+      <div class="q">
+        <h4>a) Complete the sequence.</h4>
+        <div class="muted">Step size: <span class="mono">${step}</span> &nbsp; ${EASY?'<span class="badge">Hint: add this each time</span>':''}</div>
+        <div class="row mono" id="s1row"></div>
+      </div>
+      <div class="q">
+        <h4>b) Count back in 0.25 from ${start2}.</h4>
+        <div class="row mono" id="s2row"></div>
+      </div>
+      <div class="q">
+        <h4>c) Fill the missing numbers with stated steps.</h4>
+        <div class="muted">i) Counting on in ${stepA}s</div>
+        <div class="row mono" id="s3arow"></div>
+        <div class="muted" style="margin-top:6px">ii) Counting back in ${stepB}s</div>
+        <div class="row mono" id="s3brow"></div>
+      </div>
+      <div class="q">
+        <h4>d) Reasoning</h4>
+        <div>Omar says, “If I count back 6 from −2, I get 4.” Is he correct? Why?</div>
+        <div class="row" style="margin-top:6px">
+          <select id="reasonTF">
+            <option value="">Choose</option>
+            <option value="T">Correct</option>
+            <option value="F">Incorrect</option>
+          </select>
+          <input id="reasonWhy" type="text" placeholder="Short reason (e.g., −2 − 6 = −8)" style="min-width:260px" />
+        </div>
+      </div>
+      <div class="row"><button id="check1" class="primary">Check Set 1</button><button id="regen1">Regenerate Set 1</button></div>
+      <div class="result" id="out1"></div>
+    </div>`;
+
+  // render rows with inputs
+  function renderRow(elId, arr, answerArr){ const row=$(elId); row.innerHTML=''; arr.forEach((v,i)=>{
+      if(v==='____'){ row.innerHTML += `<input class="mono sInp" data-ans="${answerArr[i]}" type="text" size="6" placeholder="?"/>`; }
+      else { row.innerHTML += `<span class="mono">${v}</span>`; }
+      if(i<arr.length-1) row.innerHTML += '<span>&nbsp;,&nbsp;</span>';
+  }); if(EASY && elId==="#s1row") row.insertAdjacentHTML('beforeend', `<div class="muted">(next two are ${round(seq[3])}, ${round(seq[4])})</div>`); }
+
+  renderRow('#s1row', a1, seq);
+  renderRow('#s2row', q2, q2Ans);
+  renderRow('#s3arow', q3a, q3aAns);
+  renderRow('#s3brow', q3b, q3bAns);
+
+  $('#check1').onclick=()=>{
+    let correct=0, total=0;
+    $$('.sInp').forEach(inp=>{ total++; const val=parseFloat(inp.value); const ans=parseFloat(inp.dataset.ans); const ok=Math.abs(val-ans)<1e-6; inp.style.borderColor= ok? '#14532d':'#7f1d1d'; if(ok) correct++; });
+    // reasoning
+    total+=2; const pick=$('#reasonTF').value; const why=$('#reasonWhy').value.trim(); const claim = reasonAns? 'T':'F'; const ok1 = pick===claim; const ok2 = /-2\s*[-−]\s*6\s*=\s*-8|(-8)/.test(why) || why.includes('-8'); if(ok1) correct++; if(ok2) correct++;
+    const gain = Math.round(6*correct/total); addScore(gain);
+    $('#out1').innerHTML = (correct===total? `<span class=ok>Perfect!</span>`: `<span class=warn>${correct}/${total} correct.</span>`) + ` <span class=muted>(+${gain} pts)</span>`;
+  };
+  $('#regen1').onclick=renderSet1;
+}
+
+/**************** Set 2 ****************/
+function renderSet2(){ const host=$('#view');
+  // build pairs like a) 5 + 2 × 3 vs (5+2) × 3
+  function mkPair(){
+    // random small integers
+    const a=1+Math.floor(Math.random()*8);
+    const b=1+Math.floor(Math.random()*8);
+    const c=1+Math.floor(Math.random()*8);
+    const ops=['+','-']; const op=ops[Math.floor(Math.random()*ops.length)];
+    // expression: a op b × c (mult/div before add/sub)
+    const un=`${a} ${op} ${b} × ${c}`;
+    const br=`(${a} ${op} ${b}) × ${c}`;
+    function evalStr(s){ return Function(`return (${s.replace(/×/g,'*').replace(/÷/g,'/')});`)(); }
+    const ans1=evalStr(un); const ans2=evalStr(br);
+    return {un, br, ans1, ans2};
+  }
+  const p1=mkPair(); const p2=mkPair();
+
+  host.innerHTML=`
+    <div class="stage">
+      <div class="row" style="justify-content:space-between"><h2 style="margin:0">Set 2 — Order of Operations & Brackets</h2><div class="badge">EASY: ${EASY?'ON':'OFF'}</div></div>
+      <div class="q">
+        <h4>a) Calculate (follow BODMAS).</h4>
+        <div class="row mono"><span>${p1.un} = </span> <input id="p1a" type="number" step="1" style="width:120px"> ${EASY?'<span class=muted>Hint: do × before +/−</span>':''}</div>
+        <div class="row mono"><span>${p1.br} = </span> <input id="p1b" type="number" step="1" style="width:120px"></div>
+      </div>
+      <div class="q">
+        <h4>b) Calculate.</h4>
+        <div class="row mono"><span>${p2.un} = </span> <input id="p2a" type="number" step="1" style="width:120px"></div>
+        <div class="row mono"><span>${p2.br} = </span> <input id="p2b" type="number" step="1" style="width:120px"></div>
+      </div>
+      <div class="row"><button id="check2" class="primary">Check Set 2</button><button id="regen2">Regenerate Set 2</button></div>
+      <div class="result" id="out2"></div>
+    </div>`;
+
+  $('#check2').onclick=()=>{
+    let correct=0; let total=4;
+    const vals=[ ['#p1a',p1.ans1], ['#p1b',p1.ans2], ['#p2a',p2.ans1], ['#p2b',p2.ans2] ];
+    vals.forEach(([sel,ans])=>{ const el=$(sel); const v=Number(el.value); const ok = Math.abs(v-ans)<1e-9; el.style.borderColor = ok? '#14532d':'#7f1d1d'; if(ok) correct++; });
+    const gain=Math.round(8*correct/total); addScore(gain);
+    $('#out2').innerHTML = (correct===total? `<span class=ok>Excellent!</span>`: `<span class=warn>${correct}/${total} correct.</span>`) + ` <span class=muted>(+${gain} pts)</span>`;
+  };
+  $('#regen2').onclick=renderSet2;
+}
+
+/**************** Set 3 ****************/
+function renderSet3(){ const host=$('#view');
+  // build MCQs similar to samples
+  const Qs=[
+    {q:'A quadrilateral has two pairs of parallel sides but no right angles. Name the shape.', opts:['Rectangle','Parallelogram','Square','Kite'], ans:'Parallelogram'},
+    {q:'A quadrilateral has four equal sides but no right angles. Name the shape.', opts:['Rhombus','Square','Rectangle','Trapezium'], ans:'Rhombus'},
+    {q:'A shape has one pair of parallel sides and no lines of symmetry. What could it be?', opts:['Isosceles trapezium','Kite','Parallelogram','Irregular trapezium'], ans:'Irregular trapezium'},
+    {q:'Which quadrilateral always has opposite sides equal and parallel, and opposite angles equal?', opts:['Parallelogram','Kite','Trapezium','Square'], ans:'Parallelogram'}
+  ].sort(()=>Math.random()-0.5);
+
+  host.innerHTML=`
+    <div class="stage">
+      <div class="row" style="justify-content:space-between"><h2 style="margin:0">Set 3 — Quadrilaterals</h2><div class="badge">EASY: ${EASY?'ON':'OFF'}</div></div>
+      <div id="q3"></div>
+      <div class="row"><button id="check3" class="primary">Check Set 3</button><button id="regen3">Regenerate Set 3</button></div>
+      <div class="result" id="out3"></div>
+    </div>`;
+
+  const q3=$('#q3'); q3.innerHTML='';
+  Qs.forEach((o,i)=>{
+    const id='q3_'+i; const opts=[...o.opts].sort(()=>Math.random()-0.5);
+    q3.insertAdjacentHTML('beforeend', `<div class=q><h4>${i+1}. ${o.q}</h4>${EASY?'<div class=muted>Recall: rectangles have right angles; rhombi have 4 equal sides; parallelograms have 2 pairs of parallel sides.</div>':''}
+      ${opts.map(opt=>`<label class=opt><input type=radio name=${id} value="${opt}"> ${opt}</label>`).join('<br>')}
+    </div>`);
+  });
+
+  $('#check3').onclick=()=>{
+    let correct=0; const total=Qs.length; Qs.forEach((o,i)=>{ const pick=($$("input[name='q3_"+i+"']:checked")[0]||{}).value; const ok= pick===o.ans; if(ok) correct++; });
+    const gain=Math.round(8*correct/total); addScore(gain);
+    $('#out3').innerHTML = (correct===total? `<span class=ok>Spot on!</span>`: `<span class=warn>${correct}/${total} correct.</span>`) + ` <span class=muted>(+${gain} pts)</span>`;
+  };
+  $('#regen3').onclick=renderSet3;
+}
+
+/**************** Set 4 ****************/
+function renderSet4(){ const host=$('#view');
+  const r = 2+Math.floor(Math.random()*8); // 2..9
+  const d = 6+2*Math.floor(Math.random()*6); // even 6..16
+  host.innerHTML=`
+    <div class="stage">
+      <div class="row" style="justify-content:space-between"><h2 style="margin:0">Set 4 — Circles</h2><div class="badge">EASY: ${EASY?'ON':'OFF'}</div></div>
+      <div class="q">
+        <h4>a) The radius of a circle is ${r} cm. Find the diameter.</h4>
+        <div class="row"><input id="c1" type="number" step="0.01"> <span>cm</span> ${EASY?'<span class=muted>Hint: diameter = 2 × radius</span>':''}</div>
+      </div>
+      <div class="q">
+        <h4>b) The diameter of a circle is ${d} cm. Find the radius.</h4>
+        <div class="row"><input id="c2" type="number" step="0.01"> <span>cm</span> ${EASY?'<span class=muted>Hint: radius = diameter ÷ 2</span>':''}</div>
+      </div>
+      <div class="row"><button id="check4" class="primary">Check Set 4</button><button id="regen4">Regenerate Set 4</button></div>
+      <div class="result" id="out4"></div>
+    </div>`;
+  $('#check4').onclick=()=>{ let correct=0, total=2; const a=Number($('#c1').value); const b=Number($('#c2').value); const ok1=Math.abs(a-2*r)<1e-9; const ok2=Math.abs(b-d/2)<1e-9; if(ok1) correct++; if(ok2) correct++; $('#c1').style.borderColor=ok1?'#14532d':'#7f1d1d'; $('#c2').style.borderColor=ok2?'#14532d':'#7f1d1d'; const gain=Math.round(6*correct/total); addScore(gain); $('#out4').innerHTML=(correct===total?`<span class=ok>Great!</span>`:`<span class=warn>${correct}/${total} correct.</span>`) + ` <span class=muted>(+${gain} pts)</span>`; };
+  $('#regen4').onclick=renderSet4;
+}
+
+function regenAll(){ const active=$('.tab.active')?.dataset.id||'set1'; sets.find(s=>s.id===active).render(); }
+
+// Global controls
+$('#regen').onclick=regenAll; $('#easy').onclick=()=>{EASY=!EASY; $('#easy').textContent=EASY?'Standard Mode':'Less‑able Mode'; regenAll();};
+
+// boot
+initTabs(); sets[0].render();
+</script>
+</body>
+</html>
